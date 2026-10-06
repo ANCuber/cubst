@@ -1,0 +1,15 @@
+# build artifacts
+*.pdf
+*.png
+!tests/**/ref/*.png
+!docs/**/*.png
+docs/manual.pdf
+
+# tytanic output
+tests/**/out/
+tests/**/diff/
+
+# editors / OS
+.DS_Store
+.vscode/
+.idea/

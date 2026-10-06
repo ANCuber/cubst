@@ -1,39 +1,21 @@
-# The `my-package` Package
+# cubst
 <div align="center">Version 0.1.0</div>
 
-A short description about the project and/or client.
+Draw Rubik's cubes in Typst. `cubst` builds a cube *state* (solved, blank, or
+the result of applying an algorithm such as `R U R' U'`) and renders it as a 2D
+top view, an unfolded net, or a 3D view powered by [CeTZ](https://github.com/cetz-package/cetz).
 
-## Template adaptation checklist
+> Status: early development. The API below is the target design and is not
+> implemented yet.
 
-- [ ] Fill out `README.md`
-  - Change the `my-package` package name, including code snippets
-  - Check section contents and/or delete sections that don't apply
-- [ ] Check and/or replace `LICENSE` by something that suits your needs
-- [ ] Fill out `typst.toml`
-  - See also the [typst/packages README](https://github.com/typst/packages/?tab=readme-ov-file#package-format)
-- [ ] Adapt Repository URLs in `CHANGELOG.md`
-  - Consider only committing that file with your first release, or removing the "Initial Release" part in the beginning
-- [ ] Adapt or deactivate the release workflow in `.github/workflows/release.yml`
-  - to deactivate it, delete that file or remove/comment out lines 2-4 (`on:` and following)
-  - to use the workflow
-    - [ ] check the values under `env:`, particularly `REGISTRY_FORK`
-    - [ ] if you don't have one, [create a fine-grained personal access token](https://github.com/settings/tokens?type=beta) with [only Contents permission](https://stackoverflow.com/a/75116350/371191) for the `REGISTRY_FORK`
-    - [ ] on this repo, create a secret `REGISTRY_TOKEN` (at `https://github.com/[user]/[repo]/settings/secrets/actions`) that contains the so created token
-
-    if configured correctly, whenever you create a tag `v...`, your package will be pushed onto a branch on the `REGISTRY_FORK`, from which you can then create a pull request against [typst/packages](https://github.com/typst/packages/)
-- [ ] remove/replace the example test case
-- [ ] (add your actual code, docs and tests)
-- [ ] remove this section from the README
-
-## Getting Started
-
-These instructions will get you a copy of the project up and running on the typst web app. Perhaps a short code example on importing the package and a very simple teaser usage.
+## Getting started
 
 ```typ
-#import "@preview/my-package:0.1.0": *
+#import "@preview/cubst:0.1.0": *
 
-#show: my-show-rule.with()
-#my-func()
+// planned API
+#cube-2d(alg: "R U R' U'")
+#cube-3d(alg: "F R U R' U' F'")
 ```
 
 <picture>
@@ -41,29 +23,29 @@ These instructions will get you a copy of the project up and running on the typs
   <img src="./thumbnail-light.svg">
 </picture>
 
-### Installation
+## Development
 
-A step by step guide that will tell you how to get the development environment up and running. This should explain how to clone the repo and where to (maybe a link to the typst documentation on it), along with any pre-requisite software and installation steps.
+Requirements: [Typst](https://typst.app) ≥ 0.13.1, [just](https://github.com/casey/just),
+and [Tytanic](https://github.com/typst-community/tytanic) (`cargo install tytanic --locked`).
 
-```
-$ First step
-$ Another step
-$ Final step
-```
-
-## Usage
-
-A more in-depth description of usage. Any template arguments? A complicated example that showcases most if not all of the functions the package provides? This is also an excellent place to signpost the manual.
-
-```typ
-#import "@preview/my-package:0.1.0": *
-
-#let my-complicated-example = ...
+```sh
+just test          # run the test suite
+just update        # accept new reference images
+just doc           # build docs/manual.pdf and the thumbnails
+just install       # install to the @local namespace for use in other documents
+just uninstall
 ```
 
-## Additional Documentation and Acknowledgments
+Layout:
 
-* Project folder on server:
-* Confluence link:
-* Asana board:
-* etc...
+- `src/lib.typ` public API (re-exports only)
+- `src/deps.typ` the single place third-party packages (CeTZ) are imported
+- `src/state.typ`, `src/moves.typ` cube model and move notation
+- `src/draw/` renderers (`2d.typ`, `net.typ`, `3d.typ`)
+- `tests/` Tytanic unit and image-regression tests
+- `examples/` scratch documents, not published
+- `docs/` manual and thumbnail sources
+
+## License
+
+[Unlicense](LICENSE)

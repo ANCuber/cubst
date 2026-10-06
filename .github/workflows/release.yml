@@ -15,7 +15,7 @@ env:
   # the repository to which to push the release version
   # this should be a fork of the registry repo that you have push privileges to
   # the `secrets.REGISTRY_TOKEN` must be able to push to this repo
-  REGISTRY_FORK: author/typst-packages
+  REGISTRY_FORK: ANCuber/typst-packages
   # the path within the registry repo where the "<name>/<version>" directory should be put
   # for Universe, this is packages/preview
   PATH_PREFIX: packages/preview

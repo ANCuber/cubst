@@ -1,33 +1,28 @@
 # for a description of available keys, see https://github.com/typst/packages/?tab=readme-ov-file#package-format
 
 [package]
-name = ""
+name = "cubst"
 version = "0.1.0"
 entrypoint = "src/lib.typ"
-authors = []
+authors = ["Anson Lai <@ANCuber>"]
 license = "Unlicense"
-description = ""
-homepage = ""
-repository = ""
-keywords = []
-categories = []
+description = "Draw Rubik's cubes in Typst: 2D, net and 3D views generated from cube states and move algorithms"
+homepage = "https://github.com/ANCuber/cubst"
+repository = "https://github.com/ANCuber/cubst"
+keywords = ["rubik", "rubik's cube", "cube", "puzzle", "speedcubing", "cetz"]
+categories = ["visualization"]
 disciplines = []
-# compiler = ""
+# CeTZ 0.4.2 requires this compiler version; keep in sync with src/deps.typ
+compiler = "0.13.1"
 exclude = [
   ".github",
   "docs",
+  "examples",
   "scripts",
   "tests",
   ".typstignore",
+  ".gitignore",
   "Justfile",
   "thumbnail-dark.svg",
   "thumbnail-light.svg",
 ]
-
-# [template]
-# path = "template"
-# entrypoint = "main.typ"
-# thumbnail = "thumbnail.png"
-
-# [tool.mytool]
-# foo = "bar"
