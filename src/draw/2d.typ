@@ -3,12 +3,14 @@
 // the usual OLL/PLL diagram. Pure Typst.
 
 #import "../util.typ"
-#import "../state.typ": assert-cube, sides
+#import "../state.typ": assert-cube, sides as neighbours
 #import "common.typ": default-palette, fill-of, abs-pt
 
 /// Draw one face of a cube head-on.
 ///
 /// - `face`: which face to look at (`"U"`, `"D"`, `"F"`, `"B"`, `"R"`, `"L"`).
+/// - `sides`: whether to draw the adjacent row of each neighbour as a strip
+///   around the face.
 /// - `sticker`: side length of one sticker (absolute length).
 /// - `gap`: space between stickers (shows `body` through it).
 /// - `side`: thickness of the side strips as a fraction of `sticker`.
@@ -18,6 +20,7 @@
 #let draw-face(
   c,
   face: "U",
+  sides: true,
   sticker: 6mm,
   gap: 0pt,
   side: 0.35,
@@ -33,12 +36,13 @@
   arrow-head: 0.3,
 ) = {
   assert-cube(c, who: "draw-face")
-  assert(face in sides, message: "cubst: unknown face " + repr(face) + "; expected one of U, D, F, B, R, L")
+  assert(face in neighbours, message: "cubst: unknown face " + repr(face) + "; expected one of U, D, F, B, R, L")
   let n = c.size
   let s = abs-pt(sticker, "sticker")
   let g = abs-pt(gap, "gap")
-  let t = s * side
-  let m = if margin == auto { calc.max(g, s * 0.12) } else { abs-pt(margin, "margin") }
+  // strip thickness and the margin between face and strips; both vanish without strips
+  let t = if sides { s * side } else { 0 }
+  let m = if not sides { 0 } else if margin == auto { calc.max(g, s * 0.12) } else { abs-pt(margin, "margin") }
   let p = s + g
   let grid = n * p - g
   let off = t + m
@@ -47,12 +51,12 @@
   // The row of the neighbour on side `s` of `face`, ordered so that it reads
   // left→right (for top/bottom) or top→bottom (for left/right) as drawn here.
   let strip(s) = {
-    let nb = sides.at(face).at(s)
-    let touching = sides.at(nb).pairs().find(p => p.at(1) == face).at(0)
+    let nb = neighbours.at(face).at(s)
+    let touching = neighbours.at(nb).pairs().find(p => p.at(1) == face).at(0)
     let values = util.get-strip(c.faces.at(nb), touching, 0)
     // where the neighbour's row naturally starts, and where it must start here
-    let natural = if touching in ("top", "bottom") { sides.at(nb).left } else { sides.at(nb).top }
-    let wanted = if s in ("top", "bottom") { sides.at(face).left } else { sides.at(face).top }
+    let natural = if touching in ("top", "bottom") { neighbours.at(nb).left } else { neighbours.at(nb).top }
+    let wanted = if s in ("top", "bottom") { neighbours.at(face).left } else { neighbours.at(face).top }
     if natural == wanted { values } else { values.rev() }
   }
 
@@ -97,16 +101,18 @@
   }
 
   let rows = c.faces.at(face)
-  let (above, below, left, right) = (strip("top"), strip("bottom"), strip("left"), strip("right"))
   box(width: total * 1pt, height: total * 1pt, fill: body, radius: radius, {
     for r in range(n) {
       for col in range(n) { cell(off + col * p, off + r * p, s, s, rows.at(r).at(col)) }
     }
-    for i in range(n) {
-      cell(off + i * p, 0, s, t, above.at(i))
-      cell(off + i * p, off + grid + m, s, t, below.at(i))
-      cell(0, off + i * p, t, s, left.at(i))
-      cell(off + grid + m, off + i * p, t, s, right.at(i))
+    if sides {
+      let (above, below, left, right) = (strip("top"), strip("bottom"), strip("left"), strip("right"))
+      for i in range(n) {
+        cell(off + i * p, 0, s, t, above.at(i))
+        cell(off + i * p, off + grid + m, s, t, below.at(i))
+        cell(0, off + i * p, t, s, left.at(i))
+        cell(off + grid + m, off + i * p, t, s, right.at(i))
+      }
     }
     for a in arrows { arrow(a) }
   })

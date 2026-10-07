@@ -47,7 +47,7 @@ States are plain values, so you can build them once and draw them many ways:
 | `case(alg)` | the state that `alg` solves (inverse scramble) |
 | `apply(c, alg)` | apply more moves, returns a new state |
 | `keep-colors`, `hide-faces`, `hide-pieces`, `mask` | hide stickers before drawing |
-| `draw(c, view: .., mask: auto, ..options)` | render; views: `oll`, `pll`, `face` (with `face: "F"` etc.), `f2l`, `full`, `net` |
+| `draw(c, view: .., mask: auto, ..options)` | render; views: `oll`, `pll`, `face` (with `face: "F"`, `sides: true`), `f2l`, `full`, `net` |
 
 Notation: `R U F' D2`, wide `Rw r 3Rw`, slices `M E S`, rotations `x y z`,
 groups `(R U R' U')3`.

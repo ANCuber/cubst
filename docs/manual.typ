@@ -172,7 +172,7 @@ color; you do not need to ask for that separately.
   stroke: none,
   table.header[*view*][*picture*][*hidden by default*],
   [`"face"`], [any face straight on, chosen with `face:`], [nothing],
-  [`"pll"`], [shorthand for `face` with `face: "U"`], [nothing],
+  [`"pll"`], [shorthand for `face` with `face: "U", sides: true`], [nothing],
   [`"oll"`], [shorthand for `pll` with a mask], [everything except the top color],
   [`"full"`], [3D], [nothing],
   [`"f2l"`], [shorthand for `full` with a mask], [every piece that carries the top color],
@@ -197,8 +197,10 @@ One face in the middle, seen head-on, with the adjacent row of each of its four
 neighbours drawn as a thin strip around it. Looking at `U` this is exactly the
 last layer as you see it from above.
 
-`face` shows any face you name with the `face:` option and hides nothing.
-`pll` is shorthand for `face` with `face: "U"`, so permutation is visible.
+`face` shows any face you name with the `face:` option and hides nothing. The
+strips are optional: `sides: true` draws them, `sides: false` leaves just the
+face. `pll` is shorthand for `face` with `face: "U", sides: true`, so the whole
+last layer is visible and permutation can be read off.
 `oll` is `pll` plus a mask that hides every sticker which is not the top color,
 so only orientation is visible. Faces are oriented as in the net (@net): the
 four side faces with `U` upward, `U` with `B` upward, and `D` with `F` upward.
@@ -207,7 +209,7 @@ four side faces with `U` upward, `U` with `B` upward, and `D` with `F` upward.
   columns: 6,
   gutter: 4mm,
   align: center + bottom,
-  ..("U", "D", "F", "B", "R", "L").map(f => [#draw(cube(scramble: "R U F2 D' L B'"), view: "face", face: f, sticker: 4mm) \ #raw("face: \"" + f + "\"")]),
+  ..("U", "D", "F", "B", "R", "L").map(f => [#draw(cube(scramble: "R U F2 D' L B'"), view: "face", face: f, sides: true, sticker: 4mm) \ #raw("face: \"" + f + "\"") \ `sides: true`]),
 ))
 
 === 3D views: `full`, `f2l`
@@ -277,6 +279,7 @@ must be absolute (`mm`, `pt`, `cm`), not `em`.
   [`stroke`], [`0.5pt + black`], [sticker outline, a Typst stroke (thickness `+` color, or `none`); see @style], [all],
   [`radius`], [`0pt`], [sticker corner radius], [straight-on, net],
   [`face`], [`"U"`], [which face the `face` view looks at], [`face`],
+  [`sides`], [`auto`], [draw the neighbours' rows as strips around the face; `auto` = off for `face`, on for `pll` and `oll`], [straight-on],
   [`body`], [`none`], [color behind the stickers, visible only through gaps; see @style], [all],
   [`palette`], [`colors`], [color name → color], [all],
   [`hidden`], [`auto`], [color of masked stickers; `auto` = the palette's `hidden` entry], [all],

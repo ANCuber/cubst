@@ -16,3 +16,8 @@
     message: "face view of " + f + " differs from the U view after " + rot,
   )
 }
+
+// `pll` is `face` looking at U with strips; `face` alone has none
+#assert(draw(c, view: "pll") == draw(c, view: "face", face: "U", sides: true))
+#assert(draw(c, view: "face", face: "U") == draw-face(c, face: "U", sides: false))
+#assert(draw(c, view: "pll", sides: false) == draw(c, view: "face", face: "U"))

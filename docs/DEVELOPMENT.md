@@ -178,13 +178,13 @@ Each renderer is a function `(c, ..named options) => content` that:
 ### The `views` table and the options
 
 ```typ
-face-view = (kind: "face", face: auto, mask: none)   // auto = the `face:` option
+face-view = (kind: "face", face: auto, sides: false, mask: none)  // auto = the `face:` option
 full-view = (kind: "3d",  mask: none)
 net-view  = (kind: "net", mask: none)
 
 face: face-view,
-pll:  (..face-view, face: "U"),
-oll:  (..face-view, face: "U", mask: c => keep-colors(c, c.scheme.U)),
+pll:  (..face-view, face: "U", sides: true),
+oll:  (..face-view, face: "U", sides: true, mask: c => keep-colors(c, c.scheme.U)),
 full: full-view,
 f2l:  (..full-view, mask: c => hide-pieces(c, containing: c.scheme.U)),
 net:  net-view,
@@ -193,8 +193,9 @@ net:  net-view,
 A view is a renderer *kind* plus a default mask, plus, for the straight-on
 kind, which face it looks at. There are three generic views, one per kind; the
 named views are shorthands derived from them by spreading and overriding:
-`pll` is `face` with the face fixed to `U`, `oll` is that plus a mask, `f2l`
-is `full` plus a mask. Keep new shorthands in this form so the relationship
+`pll` is `face` with the face fixed to `U` and side strips on, `oll` is that
+plus a mask, `f2l` is `full` plus a mask. A view entry can carry a default for
+an option (`sides` here); `draw` uses it when the caller passes `auto`. Keep new shorthands in this form so the relationship
 stays visible in the code. The mask is part of the view so that `view: "oll"`
 is all a user needs to write; `mask: none` or a custom function overrides it.
 

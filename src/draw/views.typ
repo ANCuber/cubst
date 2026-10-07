@@ -12,16 +12,19 @@
 #import "3d.typ": draw-3d
 
 // The three generic views. Every other view is one of these with something
-// fixed: `pll` is `face` looking at U, `oll` is `pll` plus a mask, `f2l` is
-// `full` plus a mask.
-#let face-view = (kind: "face", face: auto, mask: none) // `auto` = the `face:` option
+// fixed: `pll` is `face` looking at U with its side strips, `oll` is `pll`
+// plus a mask, `f2l` is `full` plus a mask.
+//
+// `face: auto` means "take the `face:` option"; `sides` is the view's default
+// for the `sides:` option, which the caller can still override.
+#let face-view = (kind: "face", face: auto, sides: false, mask: none)
 #let full-view = (kind: "3d", mask: none)
 #let net-view = (kind: "net", mask: none)
 
 #let views = (
   face: face-view,
-  pll: (..face-view, face: "U"),
-  oll: (..face-view, face: "U", mask: c => keep-colors(c, c.scheme.U)),
+  pll: (..face-view, face: "U", sides: true),
+  oll: (..face-view, face: "U", sides: true, mask: c => keep-colors(c, c.scheme.U)),
   full: full-view,
   f2l: (..full-view, mask: c => hide-pieces(c, containing: c.scheme.U)),
   net: net-view,
@@ -31,6 +34,7 @@
   face: (c, o) => draw-face(
     c,
     face: o.face,
+    sides: o.sides,
     sticker: o.sticker,
     gap: o.gap,
     stroke: o.stroke,
@@ -83,6 +87,8 @@
 ///
 /// Only used by the straight-on views:
 /// - `face`: which face the `"face"` view looks at (`oll`/`pll` always use `U`).
+/// - `sides`: whether to draw the strips of the neighbouring faces around it.
+///   `auto` = the view's default: off for `face`, on for `pll` and `oll`.
 /// - `side`: thickness of the side strips as a fraction of a sticker.
 /// - `arrows`, `arrow-color`, `arrow-thickness`, `arrow-head`: arrows between
 ///   `(row, col)` positions on the shown face.
@@ -94,6 +100,7 @@
   view: "full",
   mask: auto,
   face: "U",
+  sides: auto,
   sticker: 6mm,
   gap: 0pt,
   stroke: 0.5pt + black,
@@ -123,6 +130,7 @@
   let fixed-face = v.at("face", default: auto)
   let options = (
     face: if fixed-face == auto { face } else { fixed-face },
+    sides: if sides == auto { v.at("sides", default: true) } else { sides },
     sticker: sticker,
     gap: gap,
     stroke: stroke,
