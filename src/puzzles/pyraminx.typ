@@ -11,6 +11,8 @@
 //
 // Notation (WCA): U L R B turn the two layers at that vertex, u l r b only the
 // tip, 120° clockwise as seen from the vertex. Suffix ' for counter-clockwise.
+// Rotations of the whole puzzle: y about the U vertex (clockwise seen from
+// above, like U), z about the F face centre (clockwise seen from the front).
 
 #import "../geom.typ" as g
 #import "../notation.typ"
@@ -64,15 +66,32 @@
   (faces: faces, stickers: stickers, regions: regions)
 }
 
-#let token = regex("^([ULRBulrb])(2['’]|['’]2|2|['’])?")
+#let token = regex("^([ULRBulrbyz])(2['’]|['’]2|2|['’])?")
+#let rotation-axes = (
+  y: g.unit(verts.U),
+  z: g.unit(g.centroid(corners.F.map(v => verts.at(v)))),
+)
 #let make-move(caps) = {
   let (letter, suffix) = caps
+  let amount = notation.suffix-amount(suffix)
+  if letter in rotation-axes {
+    return (
+      base: letter,
+      amount: amount,
+      order: 3,
+      axis: rotation-axes.at(letter),
+      step: -120deg,
+      region: (-1e9, 1e9),
+      style: "",
+      puzzle: "pyraminx",
+    )
+  }
   let v = verts.at(upper(letter))
   let tip-only = letter != upper(letter)
   let depth = if tip-only { height / 3 } else { 2 * height / 3 }
   (
     base: letter,
-    amount: notation.suffix-amount(suffix),
+    amount: amount,
     order: 3,
     axis: g.unit(v),
     step: -120deg,
@@ -90,7 +109,7 @@
   default-scheme: params => default-scheme,
   model: params => the-model,
   parse: (alg, params) => notation.scan(alg, token, make-move),
-  format: m => m.base + notation.format-suffix(m.amount, 3),
+  format: m => m.base + notation.format-suffix(m.amount, m.order),
   views: ("face", "tip", "full", "net"),
   cameras: params => (
     // from the front-right and slightly below, tip on top: F large on the

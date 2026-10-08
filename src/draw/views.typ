@@ -51,6 +51,7 @@
     arrow-color: o.arrow-color,
     arrow-thickness: o.arrow-thickness,
     arrow-head: o.arrow-head,
+    labels: o.labels,
   ),
   "3d": (c, o) => draw-3d(
     c,
@@ -92,12 +93,14 @@
 ///   (`auto` = the palette's `hidden` entry).
 ///
 /// Only used by the straight-on views:
-/// - `face`: which face the `"face"` view looks at (`oll`/`pll` always use `U`).
+/// - `face`: which face the `"face"` view looks at (`oll`/`pll` always use `U`);
+///   `auto` = the puzzle's first face (`U`, or `F` on the pyraminx).
 /// - `sides`: whether to draw the neighbouring stickers as strips around it.
 ///   `auto` = the view's default: off for `face`, on for `pll` and `oll`.
 /// - `side`: thickness of the side strips as a fraction of a unit.
 /// - `arrows`, `arrow-color`, `arrow-thickness`, `arrow-head`: arrows between
 ///   sticker positions on the shown face.
+/// - `labels`: write each sticker's index on it.
 ///
 /// Only used by the `tip` view (pyraminx): `tip`, which vertex to look from.
 /// Only used by the net view: `spacing`, the distance between faces.
@@ -105,7 +108,7 @@
   c,
   view: "full",
   mask: auto,
-  face: "U",
+  face: auto,
   tip: "U",
   sides: auto,
   sticker: 6mm,
@@ -120,6 +123,7 @@
   arrow-color: black,
   arrow-thickness: 1.6pt,
   arrow-head: 0.3,
+  labels: false,
   spacing: auto,
 ) = {
   assert-puzzle(c, who: "draw")
@@ -167,6 +171,7 @@
     arrow-color: arrow-color,
     arrow-thickness: arrow-thickness,
     arrow-head: arrow-head,
+    labels: labels,
     spacing: spacing,
   )
   (renderers.at(v.kind))(shown, options)

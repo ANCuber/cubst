@@ -136,8 +136,13 @@ opposite face so that `3Rw` on a 3×3 equals `x`.
 
 ### Notation
 
-`notation.scan(alg, token-regex, make)` handles whitespace and groups
-(`(R U)3`, `(R U)'`); each puzzle supplies a regex for one move and a function
+`notation.scan(alg, token-regex, make)` tokenizes (moves plus the punctuation
+`( ) [ ] , :`, where a closer carries its `N`/`'` suffix) and then runs a
+small recursive-descent parser: `(A)N` and `(A)'` repeat and invert, `[A, B]`
+is the commutator `A B A' B'`, `[A: B]` or a bare `A: B` is the conjugate
+`A B A'`. A colon binds to the end of its enclosing group, so `C: [A, B]`
+reads `C [A, B] C'`; inside brackets the comma splits first, so `[A: B, C]`
+is `[(A: B), C]`. Each puzzle supplies a regex for one move and a function
 from its captures to a move. Suffix amounts are shared: `""` 1, `'` −1, `2` 2,
 `2'`/`'2` −2; `format-suffix` normalises them for the puzzle's order (4, 3 or
 5), so `R2'` prints as `R2` on a cube but `U2'` stays `U2'` on a megaminx.
@@ -188,7 +193,10 @@ look at view names, masks or puzzle names; everything comes from the model.
 * **Straight-on** (`2d.typ`): the face's sticker polygons in the face frame.
   Side strips are generic: any sticker on another face with an edge on this
   face's plane is drawn as a thin rectangle outside that edge. Arrows go
-  between sticker centroids; positions are resolved by `index-of`.
+  between sticker centroids; positions are resolved by `index-of`. `labels`
+  writes each index at its centroid (the manual uses it with an all-white
+  palette for the index pictures). `face: auto` is the first entry of the
+  puzzle's `faces` list, so the default face exists on every puzzle.
 * **Net** (`net.typ`): the puzzle gives a tree of attachments; each child is
   placed by a rigid 2D transform that maps its shared edge onto the parent's.
   `spacing` pushes each face away from its parent along the line between
@@ -238,8 +246,8 @@ options table in `docs/manual.typ`.
 | puzzle | views | notes |
 | --- | --- | --- |
 | cube | face pll oll full f2l net | arrows take `(row, col)` |
-| skewb | face full net | |
-| pyraminx | face tip full net | `tip:` picks U, L, R or B |
+| skewb | face full net | rotation `y` (order 4, about +y) |
+| pyraminx | face tip full net | `tip:` picks U, L, R or B; rotations `y` (about the U vertex) and `z` (about the F face normal), both order 3 |
 | megaminx | face net | no 3D camera |
 
 Side strips and arrows work on every puzzle (arrows take sticker indices
@@ -307,8 +315,8 @@ CI.
 
 ## 11. Known gaps and ideas
 
-* Arrows only on the straight-on view.
-* No commutator/conjugate notation, no `mirror`.
-* Megaminx: no 3D view. The centre-pentagon size is the `cut` option
-  (default 0.5 of the face inradius); real puzzles are nearer 0.55.
+* FTO, after WCA releases the official notation.
+* Arrows only on the straight-on view; maybe ones for "x y z" operations can be added.
+* No `mirror`.
+* Megaminx: no 3D view.
 * Even-sized cubes have no fixed centres; the scheme still names a "U color".

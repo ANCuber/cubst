@@ -25,6 +25,19 @@
 #let l = after("L")
 #assert(face(l, "D") != face(s, "D") and sticker(l, "D", 0) == sc.D)
 
+// rotations: y about the U vertex (F goes to L, like U), z about the F face
+// centre, clockwise seen from the front (the U vertex goes to R, so the face
+// opposite L lands opposite U)
+#let y = after("y")
+#assert(is-solved(after("y y y")) and after("y y'") == s and after("y2") == after("y'"))
+// y agrees with U on the top two layers
+#assert(face(after("y U'"), "F").slice(0, 4) == (sc.F,) * 4)
+#assert(face(y, "L") == (sc.F,) * 9 and face(y, "R") == (sc.L,) * 9 and face(y, "F") == (sc.R,) * 9 and face(y, "D") == (sc.D,) * 9)
+#let z = after("z")
+#assert(is-solved(after("z z z")) and after("z z'") == s)
+#assert(face(z, "F") == (sc.F,) * 9 and face(z, "D") == (sc.R,) * 9 and face(z, "L") == (sc.D,) * 9 and face(z, "R") == (sc.L,) * 9)
+#assert(to-string(parse("y z' U", event: "pyraminx"), event: "pyraminx") == "y z' U")
+
 // pieces touching F: 3 tips (3 stickers), 3 axial centres (3), 3 edges (2) = 24 stickers
 #assert(hide-pieces(s, containing: sc.F).faces.values().flatten().filter(x => x == none).len() == 24)
 // the tip at U is one piece of three stickers

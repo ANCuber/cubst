@@ -42,19 +42,26 @@
   (faces: faces, stickers: stickers, regions: regions)
 }
 
-#let token = regex("^([RLUB])(2['’]|['’]2|2|['’])?")
+// R L U B: corner turns. y: the whole puzzle a quarter turn about the vertical
+// axis, clockwise seen from above (the direction of a cube's U).
+#let token = regex("^([RLUBy])(2['’]|['’]2|2|['’])?")
 #let make-move(caps) = {
   let (letter, suffix) = caps
-  (
-    base: letter,
-    amount: notation.suffix-amount(suffix),
-    order: 3,
-    axis: g.unit(corners.at(letter)),
-    step: -120deg,
-    region: (0, 1e9),
-    style: "",
-    puzzle: "skewb",
-  )
+  let amount = notation.suffix-amount(suffix)
+  if letter == "y" {
+    (base: "y", amount: amount, order: 4, axis: (0, 1, 0), step: -90deg, region: (-1e9, 1e9), style: "", puzzle: "skewb")
+  } else {
+    (
+      base: letter,
+      amount: amount,
+      order: 3,
+      axis: g.unit(corners.at(letter)),
+      step: -120deg,
+      region: (0, 1e9),
+      style: "",
+      puzzle: "skewb",
+    )
+  }
 }
 
 #let puzzle = (
@@ -65,7 +72,7 @@
   default-scheme: params => default-scheme,
   model: params => the-model,
   parse: (alg, params) => notation.scan(alg, token, make-move),
-  format: m => m.base + notation.format-suffix(m.amount, 3),
+  format: m => m.base + notation.format-suffix(m.amount, m.order),
   views: ("face", "full", "net"),
   cameras: params => (full: (dir: g.unit((1, 1, 1)), up: (0, 1, 0)), tips: (:)),
   net: params => (

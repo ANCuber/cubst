@@ -4,8 +4,8 @@
 name = "cubst"
 version = "0.1.0"
 entrypoint = "src/lib.typ"
-authors = ["Anson Lai <@ANCuber>"]
-license = "Unlicense"
+authors = ["Lai, Hong-An (Anson Lai) <@ANCuber>"]
+license = "MIT"
 description = "Draw Rubik's cubes in Typst: 2D, net and 3D views generated from cube states and move algorithms"
 homepage = "https://github.com/ANCuber/cubst"
 repository = "https://github.com/ANCuber/cubst"

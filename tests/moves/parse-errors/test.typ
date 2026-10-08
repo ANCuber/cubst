@@ -16,6 +16,19 @@
 #assert(parse("R2 U").len() == 2 and parse("R2 U").first().amount == 2)
 #assert(parse(()) == ())
 
+// commutators and conjugates, nested, with group suffixes
+#assert(parse("[R, U]") == parse("R U R' U'"))
+#assert(parse("[R: U]") == parse("R U R'"))
+#assert(parse("R: U") == parse("R U R'"))
+#assert(parse("F: [R, U]") == parse("F R U R' U' F'"))
+#assert(parse("[F: [R, U]]") == parse("F R U R' U' F'"))
+#assert(parse("[[R, U], D]") == parse("R U R' U' D U R U' R' D'"))
+#assert(parse("[R' D' R, U2]") == parse("R' D' R U2 R' D R U2'"))
+#assert(parse("[R, U]'") == parse("U R U' R'"))
+#assert(parse("[R, U]2") == parse("R U R' U' R U R' U'"))
+#assert(parse("(R U)' D: F") == parse("U' R' D F D' R U"))
+#assert(parse("[R++: U]", event: "megaminx") == parse("R++ U R--", event: "megaminx"))
+
 // other puzzles have their own notation
 #assert(parse("R L U B'", event: "skewb").len() == 4)
 #assert(parse("U l R' b", event: "pyraminx").map(m => m.base) == ("U", "l", "R", "b"))

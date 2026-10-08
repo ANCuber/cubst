@@ -24,6 +24,14 @@
   assert(puzzles.at(cube(event: event).puzzle).views == vs)
 }
 
+// `face: auto` is the puzzle's first face, so the default works on the pyraminx
+#assert(draw(cube(event: "pyraminx"), view: "face") == draw(cube(event: "pyraminx"), view: "face", face: "F"))
+#assert(draw(cube(event: "3x3"), view: "face") == draw(cube(event: "3x3"), view: "face", face: "U"))
+// labels add text to the picture, on every puzzle
+#for ev in ("3x3", "skewb", "pyraminx", "megaminx") {
+  assert(draw(cube(event: ev), view: "face", labels: true) != draw(cube(event: ev), view: "face"))
+}
+
 // the view table derives shorthands from the generic views
 #assert(views.pll.kind == "face" and views.pll.face == "U" and views.pll.sides)
 #assert(views.oll.mask != none and views.f2l.kind == "3d" and views.tip.camera == "tip")

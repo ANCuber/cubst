@@ -3,7 +3,7 @@
 
 Draw twisty puzzles in Typst. `cubst` builds a puzzle *state* from an
 algorithm and renders it: OLL/PLL diagrams, any face straight on, 3D views,
-or an unfolded net. It supports N×N×N cubes, the skewb, the pyraminx and the
+or an unfolded net. It supports N×N cubes, the skewb, the pyraminx and the
 megaminx, all driven by one geometric engine.
 
 <picture>
@@ -56,9 +56,9 @@ States are plain values, so you can build them once and draw them many ways:
 
 | Puzzle | Views | Notation |
 | --- | --- | --- |
-| cubes | all | `R U F' D2`, wide `Rw r 3Rw`, slices `M E S`, rotations `x y z`, groups `(R U R' U')3` |
-| skewb | `face`, `full`, `net` | `R L U B` (WCA fixed-corner) |
-| pyraminx | `face`, `tip`, `full`, `net` | `U L R B`, tips `u l r b` |
+| N×N cubes | all | `R U F' D2`, wide `Rw r 3Rw`, slices `M E S`, rotations `x y z`, groups `(R U R' U')3`, commutators `[R, U]`, conjugates `[F: [R, U]]` |
+| skewb | `face`, `full`, `net` | `R L U B` (WCA fixed-corner), rotation `y` |
+| pyraminx | `face`, `tip`, `full`, `net` | `U L R B`, tips `u l r b`, rotations `y z` |
 | megaminx | `face`, `net` | face turns, `R++ R-- D++ D--` |
 
 The default scheme is yellow on top, green in front. See `docs/manual.pdf`
@@ -91,4 +91,4 @@ Layout:
 
 ## License
 
-[Unlicense](LICENSE)
+[MIT](LICENSE)

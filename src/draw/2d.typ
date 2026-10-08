@@ -10,7 +10,8 @@
 
 /// Draw one face of a puzzle head-on.
 ///
-/// - `face`: which face to look at.
+/// - `face`: which face to look at (`auto` = the puzzle's first face, `U` on
+///   every puzzle but the pyraminx, where it is `F`).
 /// - `sides`: whether to draw the neighbouring stickers that touch the face
 ///   as strips around it.
 /// - `sticker`: length of one unit (one cube sticker edge; absolute length).
@@ -20,9 +21,10 @@
 /// - `arrows`: array of arrows on the face. Each is `(from, to)` or
 ///   `(from:, to:, double: bool, color: color)`, where a position is a sticker
 ///   index, or `(row, col)` on a cube.
+/// - `labels`: write each sticker's index on it (for finding positions).
 #let draw-face(
   c,
-  face: "U",
+  face: auto,
   sides: true,
   sticker: 6mm,
   gap: 0pt,
@@ -37,8 +39,10 @@
   arrow-color: black,
   arrow-thickness: 1.6pt,
   arrow-head: 0.3,
+  labels: false,
 ) = {
   assert-puzzle(c, who: "draw-face")
+  let face = if face == auto { (registry.of(c).faces)(c.params).first() } else { face }
   assert-face(c, face, who: "draw-face")
   let model = registry.model(c)
   let fr = model.faces.at(face).frame
@@ -93,6 +97,17 @@
         arrow-thickness,
         double: a.at("double", default: false),
       )
+    }
+    if labels {
+      for (i, poly) in own {
+        let (x, y) = to-pt(g.centroid2(poly))
+        place(
+          top + left,
+          dx: (x - s / 2) * 1pt,
+          dy: (y - s / 2) * 1pt,
+          box(width: s * 1pt, height: s * 1pt, align(std.center + horizon, text(size: 0.38 * s * 1pt, i))),
+        )
+      }
     }
   })
 }

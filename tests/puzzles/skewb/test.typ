@@ -29,6 +29,14 @@
 #let u = after("U")
 #assert(center(u, "L") == sc.U and center(u, "B") == sc.L and center(u, "U") == sc.B)
 
+// y rotates the whole puzzle a quarter turn, clockwise seen from above:
+// F's stickers go to L, like a cube's U; nothing is left behind
+#let y = after("y")
+#assert(is-solved(after("y y y y")) and after("y y'") == s and after("y2") == after("y y"))
+#assert(face(y, "L") == (sc.F,) * 5 and face(y, "B") == (sc.L,) * 5 and face(y, "R") == (sc.B,) * 5)
+#assert(face(y, "U") == (sc.U,) * 5 and face(y, "D") == (sc.D,) * 5)
+#assert(to-string(parse("y2 y' R", event: "skewb"), event: "skewb") == "y2 y' R")
+
 // each colour keeps five stickers; corners group into pieces of three
 #let scrambled = after("R L U B' R' L U2 B")
 #for (f, col) in sc { assert(scrambled.faces.values().flatten().filter(x => x == col).len() == 5) }

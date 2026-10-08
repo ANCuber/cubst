@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per-puzzle view availability and a `tip` view for the pyraminx.
 - A geometric move engine shared by every puzzle: moves are rotations of sticker
   polygons about an axis, piece identity and all renderers derive from the 3D model.
+- Puzzle options (`cube(options: (cut: 0.5))` on the megaminx), validated per puzzle.
+- `labels: true` on the straight-on views writes each sticker's index on it.
+- `face: auto` (the default) is the puzzle's first face, so `view: "face"` works on the pyraminx.
+- Whole-puzzle rotations `y` on the skewb and `y`, `z` on the pyraminx.
+- Commutator `[A, B]` and conjugate `[A: B]` / `A: B` notation on every puzzle, nestable.
 
 ### Changed
 
