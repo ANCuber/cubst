@@ -10,6 +10,6 @@
 // styling, and sizes other than 3
 #draw(c, view: "full", gap: 1pt, stroke: none, body: black, sticker: 5mm)
 #h(4mm)
-#draw(cube(size: 2, scramble: "R U R' U'"), view: "full")
+#draw(cube(event: "2x2", scramble: "R U R' U'"), view: "full")
 #h(4mm)
-#draw(cube(size: 5, scramble: "3Rw U 3Rw' M2"), view: "full", sticker: 3.5mm)
+#draw(cube(event: "5x5", scramble: "3Rw U 3Rw' M2"), view: "full", sticker: 3.5mm)

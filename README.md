@@ -1,10 +1,10 @@
 # cubst
 <div align="center">Version 0.1.0</div>
 
-Draw Rubik's cubes in Typst. `cubst` builds a cube *state* from an algorithm and
-renders it as an OLL/PLL diagram, any face seen straight on, an F2L or full 3D
-view, or an unfolded net.
-Any N×N cube is supported; the renderers are tested on 2×2 to 5×5.
+Draw twisty puzzles in Typst. `cubst` builds a puzzle *state* from an
+algorithm and renders it: OLL/PLL diagrams, any face straight on, 3D views,
+or an unfolded net. It supports N×N×N cubes, the skewb, the pyraminx and the
+megaminx, all driven by one geometric engine.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./thumbnail-dark.svg">
@@ -28,6 +28,11 @@ Any N×N cube is supported; the renderers are tested on 2×2 to 5×5.
 // an F2L case (last-layer pieces greyed out) and a scrambled cube in 3D
 #draw(case("U R U' R'"), view: "f2l")
 #draw(cube(scramble: "R U F2 D' L B'"), view: "full")
+
+// other puzzles, chosen by event
+#draw(cube(event: "pyraminx", scramble: "U L R' B u"), view: "tip")
+#draw(cube(event: "skewb", scramble: "R L U B'"), view: "full")
+#draw(cube(event: "megaminx", scramble: "R++ D-- U"), view: "face", face: "U", sides: true)
 ```
 
 ## How it works
@@ -43,16 +48,21 @@ States are plain values, so you can build them once and draw them many ways:
 
 | Function | Purpose |
 | --- | --- |
-| `cube(size: 3, scramble: none, inverted: false, scheme: ..)` | build a cube, optionally scrambled |
-| `case(alg)` | the state that `alg` solves (inverse scramble) |
+| `cube(event: "3x3", scramble: none, inverted: false, scheme: auto, options: (:))` | build a state; events: `"NxN"`, `"skewb"`, `"pyraminx"`, `"megaminx"`; options such as `(cut: 0.5)` on the megaminx |
+| `case(alg, event: ..)` | the state that `alg` solves (inverse scramble) |
 | `apply(c, alg)` | apply more moves, returns a new state |
 | `keep-colors`, `hide-faces`, `hide-pieces`, `mask` | hide stickers before drawing |
-| `draw(c, view: .., mask: auto, ..options)` | render; views: `oll`, `pll`, `face` (with `face: "F"`, `sides: true`), `f2l`, `full`, `net` |
+| `draw(c, view: .., mask: auto, ..options)` | render; views: `face`, `pll`, `oll`, `full`, `f2l`, `tip`, `net` |
 
-Notation: `R U F' D2`, wide `Rw r 3Rw`, slices `M E S`, rotations `x y z`,
-groups `(R U R' U')3`.
+| Puzzle | Views | Notation |
+| --- | --- | --- |
+| cubes | all | `R U F' D2`, wide `Rw r 3Rw`, slices `M E S`, rotations `x y z`, groups `(R U R' U')3` |
+| skewb | `face`, `full`, `net` | `R L U B` (WCA fixed-corner) |
+| pyraminx | `face`, `tip`, `full`, `net` | `U L R B`, tips `u l r b` |
+| megaminx | `face`, `net` | face turns, `R++ R-- D++ D--` |
 
-The default scheme is yellow on top, green in front. See `docs/manual.pdf` for all options.
+The default scheme is yellow on top, green in front. See `docs/manual.pdf`
+for all options and `docs/DEVELOPMENT.md` for how it is built.
 
 ## Development
 
@@ -70,14 +80,14 @@ just uninstall
 Layout:
 
 - `src/lib.typ` public API (re-exports only)
-- `src/deps.typ` the single place third-party packages (CeTZ) are imported
-- `src/state.typ` cube state, accessors and masks
-- `src/moves.typ` notation parser and move engine
+- `src/puzzles/` one file per puzzle: 3D model, notation, cameras, net
+- `src/state.typ`, `src/moves.typ` generic state, masks and move engine
 - `src/cube.typ` the `cube`/`case` constructors
 - `src/draw/` renderers (`2d.typ`, `net.typ`, `3d.typ`) and the `draw` dispatcher (`views.typ`)
+- `src/deps.typ` the single place third-party packages (CeTZ) are imported
 - `tests/` Tytanic unit and image-regression tests
 - `examples/` scratch documents, not published
-- `docs/` manual and thumbnail sources
+- `docs/` manual, developer guide and thumbnail sources
 
 ## License
 

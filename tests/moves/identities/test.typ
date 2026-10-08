@@ -26,6 +26,9 @@
 #assert(after("Lw") == after("L M"))
 #assert(after("Uw") == after("U E'"))
 #assert(after("Fw") == after("F S"))
+// the deepest layer includes the opposite face
+#assert(after("3Rw") == after("x"))
+#assert(after("3Uw'") == after("y'"))
 
 // whole-cube rotations relabel faces
 #let y = after("y")
@@ -48,6 +51,6 @@
 }
 
 // size-generic: wide and slice moves on other sizes
-#assert(is-solved(apply(solved(size: 2), "(R U R' U')6")))
-#assert(is-solved(apply(solved(size: 4), "(3Rw U 3Rw' U')6")))
-#assert(apply(solved(size: 5), "x") == apply(solved(size: 5), "R M' L'"))
+#assert(is-solved(apply(solved(event: "2x2"), "(R U R' U')6")))
+#assert(is-solved(apply(solved(event: "4x4"), "(3Rw U 3Rw' U')6")))
+#assert(apply(solved(event: "5x5"), "x") == apply(solved(event: "5x5"), "R M' L'"))

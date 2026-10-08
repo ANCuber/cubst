@@ -13,3 +13,4 @@ tests/**/diff/
 .DS_Store
 .vscode/
 .idea/
+.claude/

@@ -7,179 +7,206 @@ module relies on, and how to extend or release it. The user-facing manual is
 ## 1. Architecture
 
 ```
-            API 1 (build)                       API 2 (draw)
-  ┌─────────────────────────┐          ┌────────────────────────────┐
-  │ cube.typ  cube(), case()│          │ draw/views.typ  draw()     │
-  └───────────┬─────────────┘          │   views table: name →      │
-              │                        │   (renderer, default mask) │
-  ┌───────────▼─────────────┐          └──────┬─────────┬──────┬────┘
-  │ moves.typ  parse, apply │                 │         │      │
-  │            inverse      │            2d.typ     3d.typ   net.typ
-  └───────────┬─────────────┘            (pure)     (CeTZ)    (pure)
-              │                                       │
-  ┌───────────▼─────────────┐                   deps.typ (pins CeTZ)
-  │ state.typ  solved, face,│
-  │   masks, sticker-pos    │◄────── draw/common.typ (palette lookup)
-  └───────────┬─────────────┘
-              │
-         util.typ (array rotation, strips)
+            API 1 (build)                            API 2 (draw)
+  ┌──────────────────────────┐            ┌───────────────────────────────┐
+  │ cube.typ   cube(), case()│            │ draw/views.typ   draw()       │
+  └────────────┬─────────────┘            │  views: name → (kind, mask,   │
+               │                          │          fixed face/camera)   │
+  ┌────────────▼─────────────┐            │  per-puzzle availability      │
+  │ moves.typ  parse, apply, │            └────┬──────────┬─────────┬─────┘
+  │            inverse       │                 │          │         │
+  └────────────┬─────────────┘             2d.typ     3d.typ    net.typ
+               │                          (face)     (CeTZ)    (unfold)
+  ┌────────────▼─────────────┐                 │          │         │
+  │ state.typ  solved, face, │            draw/common.typ (palette, shapes)
+  │   masks, pieces          │
+  └────────────┬─────────────┘
+               │
+  ┌────────────▼─────────────────────────────────────────────────────────┐
+  │ puzzles/registry.typ   event name → puzzle                            │
+  │ puzzles/cube.typ  skewb.typ  pyraminx.typ  megaminx.typ               │
+  │   each: 3D model (faces, sticker polygons, turning regions),          │
+  │         notation (parse/format), cameras, net tree, allowed views     │
+  └────────────┬─────────────────────────────────────────────────────────┘
+               │
+        geom.typ (vectors, rotation, frames, 2D clipping)   notation.typ (scanner)
 ```
 
-Dependencies only point downwards. `state.typ` knows nothing about moves or
-drawing; `moves.typ` knows nothing about drawing; renderers never parse
-algorithms. `lib.typ` is re-exports only.
+Dependencies only point downwards. The puzzles know nothing about states,
+moves or drawing: they describe *geometry and notation* and nothing else.
+`state.typ` and `moves.typ` are generic over that description; so are the
+three renderers. `lib.typ` is re-exports only.
 
 | File | Responsibility |
 | --- | --- |
-| `src/util.typ` | square-array rotation, reading/writing a row or column at a depth |
-| `src/state.typ` | the cube dictionary, scheme, accessors, cubie coordinates, masks |
-| `src/moves.typ` | tokenizer, parser, inverse, `to-string`, the move engine (`apply`) |
+| `src/geom.typ` | 3D/2D vector maths, rotation, face frames, polygon clipping/inset |
+| `src/notation.typ` | the algorithm scanner (tokens, groups) and suffix formatting |
+| `src/puzzles/registry.typ` | the puzzle list; `resolve(event)`, `of(state)`, `model(state)` |
+| `src/puzzles/*.typ` | one puzzle each: model, notation, cameras, net, views, hooks |
+| `src/state.typ` | the state dictionary, accessors, piece identification, masks |
+| `src/moves.typ` | `parse`, `inverse`, `to-string`, the move engine (`apply`) |
 | `src/cube.typ` | `cube()` and `case()` constructors |
-| `src/draw/common.typ` | palette lookup, absolute-length check |
-| `src/draw/2d.typ` | straight-on renderer for any face (`draw-face`) incl. arrows |
-| `src/draw/net.typ` | unfolded net renderer (`draw-net`) |
-| `src/draw/3d.typ` | isometric renderer on CeTZ (`draw-3d`) |
+| `src/draw/common.typ` | palette lookup, length check, shape and arrow drawing |
+| `src/draw/2d.typ` | straight-on renderer (`draw-face`) with side strips and arrows |
+| `src/draw/net.typ` | net renderer (`draw-net`), generic unfolding |
+| `src/draw/3d.typ` | orthographic 3D renderer on CeTZ (`draw-3d`) |
 | `src/draw/views.typ` | `views` table and the `draw` dispatcher |
 | `src/deps.typ` | the only CeTZ import |
 | `src/colors.typ` | default palette (`colors`) |
 | `src/lib.typ` | public surface |
 
-## 2. The state
+## 2. The puzzle model
 
-A cube is a plain dictionary and nothing else:
+Every puzzle is a dictionary exported as `puzzle` from its file. The fields:
+
+| field | meaning |
+| --- | --- |
+| `name` | `"cube"`, `"skewb"`, … |
+| `event(str)` | params for an event name, or `none` if it is not this puzzle (`"3x3"` → `(size: 3)`) |
+| `event-name(params)` | the canonical event name for display |
+| `options` | optional: user-settable parameters with their defaults (`(cut: 0.5)` on the megaminx); `registry.resolve` merges `cube(options: ..)` into `params` and rejects unknown keys |
+| `faces(params)` | ordered face names |
+| `default-scheme(params)` | face → color name |
+| `model(params)` | the geometry, see below |
+| `parse(alg, params)`, `format(move)` | notation in and out |
+| `views` | the views this puzzle supports |
+| `cameras(params)` | `(full: (dir, up) or none, tips: (name → (dir, up)))` |
+| `net(params)` | `(roots: (..), edges: ((parent, child), ..))` |
+| `rows(params)` | optional: `face()` reshapes the flat array into rows (cube) |
+| `index-of(params, face, pos)` | optional: user position → sticker index (cube: `(row, col)`) |
+| `index-info(params, index)` | optional: extra fields for mask `info` (cube: `row`, `col`) |
+
+`model(params)` returns:
 
 ```typ
 (
-  kind: "cube",
-  size: 3,
-  scheme: (U: "yellow", D: "white", F: "green", B: "blue", R: "orange", L: "red"),
-  faces: (U: rows, D: rows, F: rows, B: rows, R: rows, L: rows),
+  faces: (U: (normal: (x, y, z), frame: (center, normal, u, v), verts: (3D points)), ..),
+  stickers: ((face: "U", index: 0, poly: (3D points)), ..),   // in face, then index order
+  regions: ((axis: unit vector, lo: float, hi: float), ..),   // every turnable layer
 )
 ```
 
-* `rows` is an N×N array of rows. A sticker is a **color name** (string) or
-  `none` for hidden. Names are resolved through a palette only at draw time, so
-  the state carries no `color` values and no rendering options.
-* `scheme` records which color name each face had when solved. Masks use it to
-  mean "the U color" even after whole-cube rotations moved that color elsewhere.
-* `kind: "cube"` lets every public function validate its input with
-  `assert-cube` and fail with a `cubst:`-prefixed message.
-* States compare with `==` because they contain only data. Tests rely on this.
-* The field layout is **not** public API. Users get `face`, `sticker`, `is-solved`.
+* Everything is in **units**: one cube sticker edge is 1. The skewb is a cube
+  of side 3, the pyraminx has edge 3, the megaminx face inradius is 1.5. The
+  `sticker` option scales units to a length.
+* A face's `frame` is the 2D coordinate system used to draw it head-on:
+  `u` points right, `v` points *down*; it is built by `geom.frame(center,
+  normal, up-hint)`, where the up hint says which direction should be at the
+  top of the picture (U for side faces, B for the top face, F for the bottom).
+  The net uses the same local coordinates, so the two views agree.
+* A sticker's `index` order is the public contract of the puzzle and is
+  documented in the manual (cube row-major; skewb centre then corners
+  clockwise from top-left; pyraminx rows from the apex; megaminx centre,
+  edges clockwise from the top, corners clockwise from the top).
+* `regions` list every layer that can turn, as a slab `lo <= axis·p <= hi`.
+  They are not used for moving; they identify *pieces* (section 4).
 
-### Face array convention
-
-Every face is viewed from outside the cube. Row 0 is the top row, column 0 the
-left column, in the standard net:
-
-```
-        U            U: seen from above, B at the top, L on the left
-      L F R B        F R B L: seen from the front/right/back/left, U at the top
-        D            D: seen from below, F at the top, L on the left
-```
-
-Consequences that other code depends on:
-
-| face | top edge touches | left edge touches |
-| --- | --- | --- |
-| F | U | L |
-| R | U | F |
-| B | U | R |
-| L | U | B |
-| U | B | L |
-| D | F | L |
-
-### Cubie coordinates
-
-`sticker-pos(size, face, row, col)` maps a sticker to `(x, y, z)` with
-x: L→R, y: D→U, z: B→F, each in `0..size-1`. Stickers of the same piece share a
-coordinate. This is what `hide-pieces` uses, and it is the hook for any future
-piece-level feature (highlighting a pair, selecting a slot, 3D arrows).
+A model may be computed once at module level when it has no parameters
+(skewb, pyraminx) or per call when it has (cube, by size). The megaminx caches
+the default-cut model and builds others on demand. Moves must be parsed with
+the same `params` as the state they are applied to, because a move's `region`
+is a concrete threshold: `apply` uses `parse-with(alg, c.puzzle, c.params)`,
+and `cube()` passes its `options` to `inverse`.
 
 ## 3. The move engine
 
-### Move representation
-
-`parse` turns a string into an array of `(face:, layers:, amount:)`:
-
-* `face` is the face whose turning direction the move follows. Slices and
-  rotations are normalised: `M` → `L`, `E` → `D`, `S` → `F`, `x` → `R`,
-  `y` → `U`, `z` → `F`.
-* `layers` is an integer `n` (the `n` outermost layers from `face`), `"inner"`
-  (every middle layer) or `"all"`.
-* `amount` is quarter turns clockwise as seen from `face`: `1`, `2` or `-1`.
-
-`resolve-depths` turns `layers` into concrete depth indices for the cube size,
-which is why the same move list works on any N.
-
-### Tokenizer rule for numbers
-
-Each token records whether whitespace preceded it (`sp`). A number attached to a
-letter (`R2`) is a turn count; a number after a space (`R 3Rw`) starts a layer
-count. A number right after `)` repeats the group. Without this flag `R2 U` is
-ambiguous with `R 2U`.
-
-### Turning one layer
-
-`turn-layer(faces, size, face, depth)` is the only place geometry lives. It uses
-the `cycles` table:
+A parsed move carries its own geometry (see the header of `notation.typ`):
 
 ```typ
-R: (("F", "right", false), ("U", "right", false), ("B", "left", true), ("D", "right", false))
+(base: "R", amount: 1, order: 4, axis: (1, 0, 0), step: -90deg, region: (0.5, 1.5), style: "", puzzle: "cube")
 ```
 
-For face `X`, the entries are the four neighbours in **clockwise order as seen
-from outside `X`** (stickers move from each entry to the next), the side of
-that neighbour that touches `X`, and a `reversed` flag. Strips are read with
-`util.get-strip` (rows left→right, columns top→bottom); the flag is set when
-that natural reading runs against the rotational direction, so that after
-applying the flags all four strips read consistently and can be cycled by a
-plain index shift.
+`apply` does the same thing for every puzzle:
 
-How the flags were derived, so you can re-derive them if you change the face
-convention: for neighbour `A_i`, the strip must be read from `A_{i-1}` towards
-`A_{i+1}`. Look up which neighbouring faces the natural reading runs between
-(table in section 2) and set the flag when it runs the other way. Flipping all
-four flags of one face is harmless; flipping one is not.
+1. Compute every sticker's centroid and index them by a rounded-coordinate key.
+2. For each distinct move, build a permutation: every sticker whose centroid
+   satisfies `lo <= axis·p <= hi` is rotated by `step * amount` about `axis`
+   (right-hand rule) and the sticker found at the new position is its
+   destination. Clockwise as seen from outside is therefore a *negative*
+   step about an outward axis.
+3. Apply the permutation to the flat sticker array.
 
-Depth 0 also rotates `X` clockwise; depth `size-1` rotates the opposite face
-counter-clockwise. Nothing else is special-cased.
+Permutations are cached per distinct move within one `apply` call. Rounding
+the key to three decimals is safe because sticker centroids are far apart; a
+nearest-neighbour fallback guards the rare rounding boundary.
+
+No sticker centroid ever lies on a cutting plane, so both ends of a region are
+inclusive. This matters for the cube: the deepest layer must include the
+opposite face so that `3Rw` on a 3×3 equals `x`.
+
+### Notation
+
+`notation.scan(alg, token-regex, make)` handles whitespace and groups
+(`(R U)3`, `(R U)'`); each puzzle supplies a regex for one move and a function
+from its captures to a move. Suffix amounts are shared: `""` 1, `'` −1, `2` 2,
+`2'`/`'2` −2; `format-suffix` normalises them for the puzzle's order (4, 3 or
+5), so `R2'` prints as `R2` on a cube but `U2'` stays `U2'` on a megaminx.
+Megaminx `R++`/`D++` are moves with `style: "pm"` that turn everything
+*except* the L or U layer (region `(-inf, layer)` about that face's axis).
 
 ### Why this is trusted
 
-`tests/moves/faces` checks every face turn against hand-derived destinations
-including strip order. `tests/moves/identities` checks `x == R M' L'`,
-`y == U E' D'`, `z == F S B'`, that the T-perm is an involution, that the sexy
-move has order 6, and the same on 2×2, 4×4 and 5×5. If you touch `cycles` or
-`util.typ`, these tests are the safety net; add a case before changing anything.
+The cube tests predate the geometric engine and encode physical facts:
+`tests/moves/faces` (hand-derived destinations after every face turn, with
+strip order), `tests/moves/identities` (`x == R M' L'`, T-perm involution,
+sexy move order 6, `3Rw == x`, other sizes). The engine reproduced them
+unchanged. `tests/puzzles/*` pin the WCA definitions for the other puzzles:
+which centres a skewb `R` cycles, where pyraminx `U` sends F's stickers, which
+stickers megaminx `U` and `R++` move. Change a model only with these green.
 
-## 4. Masks
+## 4. The state, pieces and masks
 
-A mask is `cube => cube` that replaces stickers with `none`. `mask(c, keep)` is
-the generic form; `keep` receives `(face:, row:, col:, color:, pos:)`.
-`keep-colors`, `hide-faces` and `hide-pieces` are thin wrappers. Masks never
-un-hide anything, so they compose in any order, and they are state transforms so
-every renderer handles them for free.
+```typ
+(kind: "puzzle", puzzle: "cube", event: "3x3", params: (size: 3),
+ scheme: (..), faces: (U: (flat stickers), ..))
+```
+
+Faces are **flat arrays** in model order; `face()` reshapes cubes into rows.
+States compare with `==`. The field layout is not public API.
+
+**Pieces** are identified without any puzzle-specific code: a sticker's piece
+id is the string of which `regions` contain its centroid. Two stickers belong
+to one piece exactly when every layer moves both or neither, so the
+signatures coincide. `hide-pieces` uses this; `tests/state/masks` checks that
+a 3×3 has 26 pieces and the UFR corner's three stickers share one.
+
+A mask is `state => state` that replaces stickers with `none`. `mask(c, keep)`
+is the generic form; `keep` receives `(face:, index:, color:, piece:)` plus
+whatever `index-info` adds (`row`, `col` on cubes). Masks never un-hide, so
+they compose in any order.
 
 ## 5. Renderers and the `draw` dispatcher
 
 ### Renderer contract
 
-Each renderer is a function `(c, ..named options) => content` that:
+Each renderer is `(c, ..named options) => content` that calls
+`assert-puzzle`, takes absolute lengths (`abs-pt`), draws via
+`common.shape` (uses `rect` for axis-aligned squares so `radius` works,
+`polygon` otherwise) and returns inline content (a `box`). Renderers never
+look at view names, masks or puzzle names; everything comes from the model.
 
-* calls `assert-cube`;
-* takes geometry as **absolute lengths** (`sticker`, `gap`, …) and converts them
-  with `abs-pt`, computing in floats and multiplying by `1pt` at the end;
-* resolves colors with `fill-of(name, palette, hidden)`;
-* returns **inline** content (`box`) so cubes sit in text and in `grid` cells
-  alike. The 3D renderer boxes its CeTZ canvas for this reason;
-* knows nothing about view names or masks.
+* **Straight-on** (`2d.typ`): the face's sticker polygons in the face frame.
+  Side strips are generic: any sticker on another face with an edge on this
+  face's plane is drawn as a thin rectangle outside that edge. Arrows go
+  between sticker centroids; positions are resolved by `index-of`.
+* **Net** (`net.typ`): the puzzle gives a tree of attachments; each child is
+  placed by a rigid 2D transform that maps its shared edge onto the parent's.
+  `spacing` pushes each face away from its parent along the line between
+  their centres, accumulated down the tree. Several roots (megaminx) are laid
+  side by side.
+* **3D** (`3d.typ`): orthographic projection along a camera direction with an
+  up hint; faces with `normal·dir > 0` are drawn (convex puzzles need no depth
+  sort). Gaps are insets in the face plane. The projection is scaled by
+  √1.5 so cubes match the classic isometric drawing. Cameras come from the
+  puzzle: `full` (cube/skewb isometric; pyraminx from the front-right and
+  slightly below, so F, R and the D base show with the tip on top; megaminx
+  none) and `tips` (pyraminx, looking down a vertex).
 
 ### The `views` table and the options
 
 ```typ
-face-view = (kind: "face", face: auto, sides: false, mask: none)  // auto = the `face:` option
-full-view = (kind: "3d",  mask: none)
+face-view = (kind: "face", face: auto, sides: false, mask: none)
+full-view = (kind: "3d",  camera: "full", mask: none)
 net-view  = (kind: "net", mask: none)
 
 face: face-view,
@@ -187,117 +214,101 @@ pll:  (..face-view, face: "U", sides: true),
 oll:  (..face-view, face: "U", sides: true, mask: c => keep-colors(c, c.scheme.U)),
 full: full-view,
 f2l:  (..full-view, mask: c => hide-pieces(c, containing: c.scheme.U)),
+tip:  (..full-view, camera: "tip"),
 net:  net-view,
 ```
 
-A view is a renderer *kind* plus a default mask, plus, for the straight-on
-kind, which face it looks at. There are three generic views, one per kind; the
-named views are shorthands derived from them by spreading and overriding:
-`pll` is `face` with the face fixed to `U` and side strips on, `oll` is that
-plus a mask, `f2l` is `full` plus a mask. A view entry can carry a default for
-an option (`sides` here); `draw` uses it when the caller passes `auto`. Keep new shorthands in this form so the relationship
-stays visible in the code. The mask is part of the view so that `view: "oll"`
-is all a user needs to write; `mask: none` or a custom function overrides it.
+Three generic views, one per renderer kind; the others are shorthands made by
+spreading and overriding. `draw` checks the view exists, then that the
+puzzle lists it in its `views`, applies the default mask unless `mask:` is
+`none` or a function, resolves the camera (`full`, or `tips.at(tip)`), and
+forwards one options dictionary to the renderer closure for the kind.
 
-**All appearance options are parameters of `draw` itself**, each with exactly
-one default, so an option means the same thing in every view and unknown
-options fail at the `draw` call. `draw` builds an options dictionary and the
-`renderers` table maps each kind to a closure that forwards only the options
-that renderer understands. Options a kind does not use are ignored on purpose
-(documented in the manual), which lets users keep one option set for every
-view. The lower-level `draw-face`/`draw-3d`/`draw-net` keep their own
-signatures with the same defaults.
+**All appearance options are parameters of `draw` itself**, each with one
+default, so an option means the same in every view and unknown options fail
+at the call. Options a kind does not use are ignored on purpose.
 
-Rules when you add an option:
+Rules when you add an option: add it to `draw` with a default; add it to the
+`options` dictionary and to every renderer closure that uses it; give it the
+same meaning and default in the renderer's own signature; add a row to the
+options table in `docs/manual.typ`.
 
-1. Add it to `draw` with a default.
-2. Add it to the `options` dictionary and to every renderer closure that uses it.
-3. Give it the same meaning and default in the renderer's own signature.
-4. Add a row to the options table in `docs/manual.typ`, with the "used by" column.
+### Per-puzzle restrictions
 
-Adding a view is one table entry. Adding a renderer kind is one file plus an
-entry in `renderers`.
+| puzzle | views | notes |
+| --- | --- | --- |
+| cube | face pll oll full f2l net | arrows take `(row, col)` |
+| skewb | face full net | |
+| pyraminx | face tip full net | `tip:` picks U, L, R or B |
+| megaminx | face net | no 3D camera |
 
-The generic views are the ones to extend; shorthands only fix arguments.
+Side strips and arrows work on every puzzle (arrows take sticker indices
+outside cubes). Asking for a view a puzzle lacks fails with a `cubst:`
+message listing what it supports.
 
-### Geometry notes
+## 6. Adding a puzzle
 
-* **Top view** (`2d.typ`): the U face grid plus one strip per side. Because B is
-  stored as seen from behind, its top row is mirrored when drawn above U; R's
-  top row is mirrored when drawn down the right side. L and F need no mirroring.
-  Arrows take `(row, col)` on the U grid; heads are polygons computed from the
-  unit direction vector.
-* **3D view** (`3d.typ`): fixed isometric projection, `(x, y, z) → ((x - z)·cos 30°, y - (x + z)·sin 30°)`,
-  showing U, F, R. Each sticker is a quad in cube units (one sticker = one unit)
-  drawn with `cetz.draw.line(.., close: true, fill:)`; the canvas `length` is the
-  sticker size. When `body` is set, three body quads are drawn first so gaps
-  show the body color. `radius` is not supported in 3D.
-  Other faces are shown by rotating the *state*, not the camera.
-* **Palette** (`colors.typ`): the default shades are the common "official"
-  sticker colors. White, yellow and orange were chosen to stay distinct from
-  each other and from red at small sizes; keep that property if you retune them.
-  The palette also carries `hidden`, the color for masked stickers. The
-  `hidden:` draw option defaults to `auto`, which means "the palette's
-  `hidden` entry" (`fill-of` in `common.typ`). `grey` is an ordinary sticker
-  color and is unrelated to masking.
-* **Net** (`net.typ`): faces placed on a 4×3 grid of face-sized cells.
+1. Create `src/puzzles/<name>.typ` exporting `puzzle` with the fields in
+   section 2. Build the model from 3D geometry: face frames via `geom.frame`,
+   sticker polygons in 3D, regions as slabs. Write the notation regex and
+   `make-move`, choosing `axis`, `step` (negative for clockwise-from-outside)
+   and `region` for each move.
+2. List it in `registry.puzzles`.
+3. Add `tests/puzzles/<name>` pinning the move directions from the official
+   definition (orders, which stickers a move carries where, sticker counts
+   per colour) and `tests/render/<name>` for its views.
+4. Document the sticker index order and notation in the manual.
 
-## 6. Dependencies
+Nothing else needs to change: states, masks, pieces and all three renderers
+work from the model alone.
 
-CeTZ is imported in exactly one place, `src/deps.typ`, and every module imports
-it from there. To upgrade: change that line, check CeTZ's `compiler`
-requirement in its `typst.toml`, raise `compiler` in our `typst.toml` and the CI
-matrix to match, then run `just test` and inspect any image diffs.
+## 7. Dependencies
 
-Public functions return finished content, never CeTZ elements, so users' own
-CeTZ version can never conflict with ours. Do not re-export `cetz`.
+CeTZ is imported in exactly one place, `src/deps.typ`. To upgrade: change
+that line, check CeTZ's `compiler` requirement, raise `compiler` in our
+`typst.toml` and the CI matrix to match, run `just test`, inspect image diffs.
+Public functions return finished content, never CeTZ elements. Do not
+re-export `cetz`.
 
-## 7. Testing
-
-Tests live in `tests/<group>/<name>/test.typ` and run with Tytanic:
+## 8. Testing
 
 ```sh
 just test                 # everything
-tt run moves/faces        # one test
+tt run puzzles/skewb      # one test
 just update               # regenerate all reference images
 tt update render/oll      # regenerate one
 ```
 
-* `moves/*`, `state/*`, `colors` are **unit tests**: they compile and `assert`.
-  A failing assertion fails the test with its message.
-* `render/*` are **image tests**: a `ref/` directory marks them as such. Each
-  page is compared pixel-wise against `ref/1.png`. Keep them small and use
-  `#set page(width: auto, height: auto)`.
+`moves/*`, `state/*`, `puzzles/*`, `draw/*`, `colors` are unit tests (compile
+and `assert`). `render/*` are image tests with a `ref/` directory. Keep
+them small, with `#set page(width: auto, height: auto)`. References are
+generated with the local Typst; align the CI matrix with it or regenerate in
+CI.
 
-Reference images were generated with the local Typst version. CI runs the
-versions in `.github/workflows/tests.yml`; font or rasterizer differences across
-Typst versions can produce diffs, so align the matrix with the version used to
-generate references, or regenerate in CI.
-
-## 8. Conventions
+## 9. Conventions
 
 * Everything is a value. No `state()`, no counters, no globals.
 * Public functions validate input and panic with messages starting `cubst:`.
 * Lengths used for geometry must be absolute; `abs-pt` enforces it.
-* Keep `lib.typ` as imports only. Helpers stay private by not being listed there.
-* Names use kebab-case. Move letters are the only single-capital identifiers.
+* Keep `lib.typ` as imports only.
+* Closures capture variables by value at definition time; pass tables that
+  are still being filled as parameters (see `net.typ`).
 * Document every public function with a `///` comment above it.
 
-## 9. Release checklist
+## 10. Release checklist
 
 1. Update `CHANGELOG.md` and the version in `typst.toml`, `README.md`,
    `docs/manual.typ`.
 2. `just test` and `just doc`; check `docs/manual.pdf` and the thumbnails.
 3. `just install`, then compile a document outside the repo with
-   `#import "@local/cubst:<version>": *` to check packaging and `.typstignore`.
+   `#import "@local/cubst:<version>": *`.
 4. Tag `v<version>`. The release workflow needs `REGISTRY_FORK` to be your fork
    of `typst/packages` and a `REGISTRY_TOKEN` secret with push access to it.
 
-## 10. Known gaps and ideas
+## 11. Known gaps and ideas
 
-* Arrows only on the shown face of the straight-on view. 3D arrows could reuse `sticker-pos`.
-* The 3D camera is fixed; other faces are viewed by rotating the state.
-* No commutator/conjugate notation (`[A, B]`, `[A: B]`).
-* No `mirror` for algorithms.
-* Even-sized cubes have no fixed centers; the scheme still names a "U color",
-  which is what masks use.
+* Arrows only on the straight-on view.
+* No commutator/conjugate notation, no `mirror`.
+* Megaminx: no 3D view. The centre-pentagon size is the `cut` option
+  (default 0.5 of the face inradius); real puzzles are nearer 0.55.
+* Even-sized cubes have no fixed centres; the scheme still names a "U color".

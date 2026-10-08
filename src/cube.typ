@@ -1,24 +1,29 @@
-// Public constructors (API 1): build a cube from a scramble or from the case an
-// algorithm solves.
+// Public constructors (API 1): build a puzzle from a scramble or from the
+// case an algorithm solves.
 
-#import "state.typ": solved, default-scheme
+#import "state.typ": solved
 #import "moves.typ"
 
-/// A cube of the given size, optionally scrambled.
+/// A puzzle for `event` ("3x3", "2x2", .., "skewb", "pyraminx", "megaminx"),
+/// optionally scrambled.
 ///
-/// - `scramble`: algorithm string (or move array) applied to the solved cube.
+/// - `scramble`: algorithm string (or move array) applied to the solved puzzle.
 /// - `inverted`: apply the inverse instead, giving the state that `scramble`
-///   solves. This is what you want for OLL/PLL/F2L case diagrams.
-#let cube(size: 3, scramble: none, inverted: false, scheme: default-scheme) = {
-  let c = solved(size: size, scheme: scheme)
+///   solves. This is what you want for case diagrams.
+/// - `scheme`: face → color name; `auto` is the puzzle's default scheme.
+/// - `options`: puzzle-specific settings, e.g. `(cut: 0.5)` on the megaminx.
+#let cube(event: "3x3", scramble: none, inverted: false, scheme: auto, options: (:)) = {
+  let c = solved(event: event, scheme: scheme, options: options)
   if scramble == none {
     c
   } else if inverted {
-    moves.apply(c, moves.inverse(scramble))
+    moves.apply(c, moves.inverse(scramble, event: event, options: options))
   } else {
     moves.apply(c, scramble)
   }
 }
 
-/// The cube state that `alg` solves (shorthand for `cube(scramble: alg, inverted: true)`).
-#let case(alg, size: 3, scheme: default-scheme) = cube(size: size, scramble: alg, inverted: true, scheme: scheme)
+/// The state that `alg` solves (shorthand for `cube(scramble: alg, inverted: true)`).
+#let case(alg, event: "3x3", scheme: auto, options: (:)) = {
+  cube(event: event, scramble: alg, inverted: true, scheme: scheme, options: options)
+}

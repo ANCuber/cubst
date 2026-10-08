@@ -1,118 +1,123 @@
-// Cube state model.
+// Puzzle state model.
 //
-// A cube is a plain dictionary:
-//   (kind: "cube", size: N, scheme: (U: .., D: .., ..), faces: (U: rows, D: rows, ..))
-// Each face is an N×N array of rows; a sticker is a color *name* (a key into the
-// palette used at draw time) or `none` for a hidden sticker.
-//
-// Face arrays follow the standard net: every face is viewed from outside with U
-// above it, except U (viewed from above, B at the top) and D (viewed from below,
-// F at the top).
-//
-//        U
-//      L F R B
-//        D
+// A state is a plain dictionary:
+//   (kind: "puzzle", puzzle: "cube", event: "3x3", params: (size: 3),
+//    scheme: (U: "yellow", ..), faces: (U: (..stickers..), ..))
+// Each face is a flat array of stickers in the order defined by the puzzle
+// (see `src/puzzles/<name>.typ`); a sticker is a color *name* or `none` for
+// hidden. For cubes `face()` reshapes the array into rows.
 //
 // Nothing in this file knows about moves or rendering.
 
-#import "util.typ"
+#import "geom.typ" as g
+#import "puzzles/registry.typ" as registry
+#import "puzzles/cube.typ": default-scheme
 
-#let face-names = ("U", "D", "F", "B", "R", "L")
-#let opposite = (U: "D", D: "U", F: "B", B: "F", R: "L", L: "R")
+#let is-puzzle(x) = type(x) == dictionary and x.at("kind", default: none) == "puzzle"
 
-/// For every face, the neighbour that touches each side of its array
-/// (top/bottom/left/right as the face is viewed, see the net above).
-#let sides = (
-  F: (top: "U", bottom: "D", left: "L", right: "R"),
-  B: (top: "U", bottom: "D", left: "R", right: "L"),
-  R: (top: "U", bottom: "D", left: "F", right: "B"),
-  L: (top: "U", bottom: "D", left: "B", right: "F"),
-  U: (top: "B", bottom: "F", left: "L", right: "R"),
-  D: (top: "F", bottom: "B", left: "L", right: "R"),
-)
-
-/// Default color scheme: yellow on top, green in front (white-cross-on-bottom
-/// orientation, standard Western color placement).
-#let default-scheme = (U: "yellow", D: "white", F: "green", B: "blue", R: "orange", L: "red")
-
-#let is-cube(x) = type(x) == dictionary and x.at("kind", default: none) == "cube"
-
-#let assert-cube(x, who: "cubst") = {
+#let assert-puzzle(x, who: "cubst") = {
   assert(
-    is-cube(x),
-    message: who + ": expected a cube (made with `cube()` or `case()`), got " + repr(x),
+    is-puzzle(x),
+    message: who + ": expected a puzzle state (made with `cube()` or `case()`), got " + repr(x),
   )
 }
 
-/// A solved cube of the given size.
-#let solved(size: 3, scheme: default-scheme) = {
-  assert(
-    type(size) == int and size >= 1,
-    message: "cube size must be a positive integer, got " + repr(size),
-  )
-  for f in face-names {
-    assert(f in scheme, message: "scheme is missing face " + f)
+/// A solved puzzle for the given event ("3x3", "4x4", .., "skewb", "pyraminx",
+/// "megaminx"). `options` are puzzle-specific settings, e.g. `(cut: 0.5)` on
+/// the megaminx.
+#let solved(event: "3x3", scheme: auto, options: (:)) = {
+  let (puzzle, params) = registry.resolve(event, options: options)
+  let p = registry.puzzles.at(puzzle)
+  let faces = (p.faces)(params)
+  let scheme = if scheme == auto { (p.default-scheme)(params) } else { scheme }
+  for f in faces {
+    assert(f in scheme, message: "cubst: scheme for " + (p.event-name)(params) + " is missing face " + f)
   }
+  let counts = (:)
+  for s in (p.model)(params).stickers { counts.insert(s.face, counts.at(s.face, default: 0) + 1) }
   (
-    kind: "cube",
-    size: size,
+    kind: "puzzle",
+    puzzle: puzzle,
+    event: (p.event-name)(params),
+    params: params,
     scheme: scheme,
-    faces: face-names.map(f => (f, util.filled(size, scheme.at(f)))).to-dict(),
+    faces: faces.map(f => (f, (scheme.at(f),) * counts.at(f))).to-dict(),
   )
 }
 
-/// The N×N sticker array of one face.
-#let face(c, name) = {
-  assert-cube(c, who: "face")
-  assert(name in face-names, message: "unknown face " + repr(name))
-  c.faces.at(name)
+#let assert-face(c, name, who: "cubst") = {
+  assert(
+    name in c.faces,
+    message: who + ": " + c.event + " has no face " + repr(name) + "; faces are " + c.faces.keys().join(", "),
+  )
 }
 
-/// One sticker (color name or `none` when hidden). `row`/`col` are 0-based.
-#let sticker(c, name, row, col) = face(c, name).at(row).at(col)
+/// The stickers of one face: rows for a cube, a flat array otherwise.
+#let face(c, name) = {
+  assert-puzzle(c, who: "face")
+  assert-face(c, name, who: "face")
+  let flat = c.faces.at(name)
+  let rows = registry.of(c).at("rows", default: none)
+  if rows == none { flat } else { flat.chunks(rows(c.params)) }
+}
+
+/// Sticker index for a position: an index, or `(row, col)` on a cube.
+#let index-of(c, name, pos) = {
+  let count = c.faces.at(name).len()
+  let i = if type(pos) == int { pos } else {
+    let hook = registry.of(c).at("index-of", default: none)
+    assert(hook != none, message: "cubst: " + c.event + " sticker positions are plain indices, got " + repr(pos))
+    hook(c.params, name, pos)
+  }
+  assert(i >= 0 and i < count, message: "cubst: no sticker " + repr(pos) + " on face " + name + " of a " + c.event)
+  i
+}
+
+/// One sticker (color name or `none` when hidden): `sticker(c, "U", row, col)`
+/// on a cube, `sticker(c, "F", index)` on the other puzzles.
+#let sticker(c, name, ..pos) = {
+  assert-puzzle(c, who: "sticker")
+  assert-face(c, name, who: "sticker")
+  let pos = pos.pos()
+  let p = if pos.len() == 1 { pos.first() } else { pos }
+  c.faces.at(name).at(index-of(c, name, p))
+}
 
 /// True when every face shows a single color.
 #let is-solved(c) = {
-  assert-cube(c, who: "is-solved")
-  face-names.all(f => {
-    let stickers = c.faces.at(f).flatten()
-    stickers.all(s => s == stickers.first())
-  })
+  assert-puzzle(c, who: "is-solved")
+  c.faces.values().all(stickers => stickers.all(s => s == stickers.first()))
 }
 
-/// 3D cubie coordinate (x, y, z) of a sticker, with x: L→R, y: D→U, z: B→F,
-/// each in 0..size-1. Stickers of the same piece share a coordinate.
-#let sticker-pos(size, name, row, col) = {
-  let n = size - 1
-  if name == "F" {
-    (col, n - row, n)
-  } else if name == "B" {
-    (n - col, n - row, 0)
-  } else if name == "R" {
-    (n, n - row, n - col)
-  } else if name == "L" {
-    (0, n - row, col)
-  } else if name == "U" {
-    (col, n, row)
-  } else if name == "D" {
-    (col, 0, n - row)
-  } else {
-    panic("unknown face " + repr(name))
+/// Piece identity of every sticker, keyed "face:index". Two stickers are on
+/// the same piece exactly when every layer of the puzzle moves both or neither.
+#let pieces(c) = {
+  let model = registry.model(c)
+  let out = (:)
+  for s in model.stickers {
+    let p = g.centroid(s.poly)
+    let sig = model.regions.map(r => {
+      let t = g.dot(p, r.axis)
+      if t >= r.lo - 1e-6 and t <= r.hi + 1e-6 { "1" } else { "0" }
+    }).join()
+    out.insert(s.face + ":" + str(s.index), sig)
   }
+  out
 }
 
 /// Generic mask: keep stickers for which `keep(info)` is true, hide the rest.
-/// `info` is `(face:, row:, col:, color:, pos:)`.
+/// `info` has `face`, `index`, `color`, `piece`, and `row`/`col` on a cube.
 #let mask(c, keep) = {
-  assert-cube(c, who: "mask")
+  assert-puzzle(c, who: "mask")
+  let ids = pieces(c)
+  let extra = registry.of(c).at("index-info", default: none)
   let out = c
-  for f in face-names {
-    for r in range(c.size) {
-      for col in range(c.size) {
-        let color = c.faces.at(f).at(r).at(col)
-        let info = (face: f, row: r, col: col, color: color, pos: sticker-pos(c.size, f, r, col))
-        if color != none and not keep(info) { out.faces.at(f).at(r).at(col) = none }
-      }
+  for (f, stickers) in c.faces {
+    for (i, color) in stickers.enumerate() {
+      if color == none { continue }
+      let info = (face: f, index: i, color: color, piece: ids.at(f + ":" + str(i)))
+      if extra != none { info += extra(c.params, i) }
+      if not keep(info) { out.faces.at(f).at(i) = none }
     }
   }
   out
@@ -133,15 +138,14 @@
 /// Hide every sticker of every piece that carries at least one sticker of the
 /// given color(s). Used for F2L diagrams (hide the last-layer pieces).
 #let hide-pieces(c, containing: none) = {
-  assert-cube(c, who: "hide-pieces")
+  assert-puzzle(c, who: "hide-pieces")
   let colors = if type(containing) == str { (containing,) } else { containing }
+  let ids = pieces(c)
   let marked = ()
-  for f in face-names {
-    for r in range(c.size) {
-      for col in range(c.size) {
-        if c.faces.at(f).at(r).at(col) in colors { marked.push(sticker-pos(c.size, f, r, col)) }
-      }
+  for (f, stickers) in c.faces {
+    for (i, color) in stickers.enumerate() {
+      if color in colors { marked.push(ids.at(f + ":" + str(i))) }
     }
   }
-  mask(c, info => info.pos not in marked)
+  mask(c, info => info.piece not in marked)
 }

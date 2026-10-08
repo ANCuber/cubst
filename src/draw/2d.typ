@@ -1,22 +1,25 @@
-// Straight-on renderer: one face seen head-on, with the adjacent row of each
-// neighbouring face drawn as a thin strip around it. With `face: "U"` this is
-// the usual OLL/PLL diagram. Pure Typst.
+// Straight-on renderer: one face seen head-on, optionally with the stickers
+// of the neighbouring faces that touch it drawn as thin strips around it.
+// With `face: "U"` on a cube this is the usual OLL/PLL diagram. Pure Typst,
+// and generic: the face's stickers come from the puzzle model.
 
-#import "../util.typ"
-#import "../state.typ": assert-cube, sides as neighbours
-#import "common.typ": default-palette, fill-of, abs-pt
+#import "../geom.typ" as g
+#import "../state.typ": assert-puzzle, assert-face, index-of
+#import "../puzzles/registry.typ" as registry
+#import "common.typ": default-palette, fill-of, abs-pt, shape, arrow
 
-/// Draw one face of a cube head-on.
+/// Draw one face of a puzzle head-on.
 ///
-/// - `face`: which face to look at (`"U"`, `"D"`, `"F"`, `"B"`, `"R"`, `"L"`).
-/// - `sides`: whether to draw the adjacent row of each neighbour as a strip
-///   around the face.
-/// - `sticker`: side length of one sticker (absolute length).
+/// - `face`: which face to look at.
+/// - `sides`: whether to draw the neighbouring stickers that touch the face
+///   as strips around it.
+/// - `sticker`: length of one unit (one cube sticker edge; absolute length).
 /// - `gap`: space between stickers (shows `body` through it).
-/// - `side`: thickness of the side strips as a fraction of `sticker`.
+/// - `side`: thickness of the side strips as a fraction of a unit.
 /// - `margin`: distance between the face and the side strips (`auto` = small).
-/// - `arrows`: array of arrows on the face. Each is `((row, col), (row, col))`
-///   or `(from: (row, col), to: (row, col), double: bool, color: color)`.
+/// - `arrows`: array of arrows on the face. Each is `(from, to)` or
+///   `(from:, to:, double: bool, color: color)`, where a position is a sticker
+///   index, or `(row, col)` on a cube.
 #let draw-face(
   c,
   face: "U",
@@ -35,85 +38,61 @@
   arrow-thickness: 1.6pt,
   arrow-head: 0.3,
 ) = {
-  assert-cube(c, who: "draw-face")
-  assert(face in neighbours, message: "cubst: unknown face " + repr(face) + "; expected one of U, D, F, B, R, L")
-  let n = c.size
+  assert-puzzle(c, who: "draw-face")
+  assert-face(c, face, who: "draw-face")
+  let model = registry.model(c)
+  let fr = model.faces.at(face).frame
   let s = abs-pt(sticker, "sticker")
-  let g = abs-pt(gap, "gap")
-  // strip thickness and the margin between face and strips; both vanish without strips
-  let t = if sides { s * side } else { 0 }
-  let m = if not sides { 0 } else if margin == auto { calc.max(g, s * 0.12) } else { abs-pt(margin, "margin") }
-  let p = s + g
-  let grid = n * p - g
-  let off = t + m
-  let total = grid + 2 * off
+  let gp = abs-pt(gap, "gap") / s
 
-  // The row of the neighbour on side `s` of `face`, ordered so that it reads
-  // left→right (for top/bottom) or top→bottom (for left/right) as drawn here.
-  let strip(s) = {
-    let nb = neighbours.at(face).at(s)
-    let touching = neighbours.at(nb).pairs().find(p => p.at(1) == face).at(0)
-    let values = util.get-strip(c.faces.at(nb), touching, 0)
-    // where the neighbour's row naturally starts, and where it must start here
-    let natural = if touching in ("top", "bottom") { neighbours.at(nb).left } else { neighbours.at(nb).top }
-    let wanted = if s in ("top", "bottom") { neighbours.at(face).left } else { neighbours.at(face).top }
-    if natural == wanted { values } else { values.rev() }
+  // (polygon in face units, color name)
+  let shapes = ()
+  let own = (:)
+  for st in model.stickers.filter(st => st.face == face) {
+    let poly = st.poly.map(p => g.to-local(fr, p))
+    own.insert(str(st.index), poly)
+    shapes.push((poly: g.inset(poly, gp), name: c.faces.at(face).at(st.index)))
   }
 
-  let cell(x, y, w, h, name) = place(
-    top + left,
-    dx: x * 1pt,
-    dy: y * 1pt,
-    rect(width: w * 1pt, height: h * 1pt, fill: fill-of(name, palette, hidden), stroke: stroke, radius: radius),
-  )
-  let center(pos) = (off + pos.at(1) * p + s / 2, off + pos.at(0) * p + s / 2)
-
-  let arrow(a) = {
-    let a = if type(a) == array { (from: a.at(0), to: a.at(1)) } else { a }
-    let color = a.at("color", default: arrow-color)
-    let (x1, y1) = center(a.from)
-    let (x2, y2) = center(a.to)
-    let (dx, dy) = (x2 - x1, y2 - y1)
-    let len = calc.sqrt(dx * dx + dy * dy)
-    assert(len > 0, message: "cubst: arrow from and to must differ")
-    let (ux, uy) = (dx / len, dy / len)
-    let h = arrow-head * s
-    let w = h * 0.5
-    let head(tx, ty, ux, uy) = place(
-      top + left,
-      polygon(
-        fill: color,
-        stroke: none,
-        (tx * 1pt, ty * 1pt),
-        ((tx - h * ux + w * uy) * 1pt, (ty - h * uy - w * ux) * 1pt),
-        ((tx - h * ux - w * uy) * 1pt, (ty - h * uy + w * ux) * 1pt),
-      ),
-    )
-    let double = a.at("double", default: false)
-    let (sx, sy) = if double { (x1 + 0.7 * h * ux, y1 + 0.7 * h * uy) } else { (x1, y1) }
-    let (ex, ey) = (x2 - 0.7 * h * ux, y2 - 0.7 * h * uy)
-    place(
-      top + left,
-      line(start: (sx * 1pt, sy * 1pt), end: (ex * 1pt, ey * 1pt), stroke: arrow-thickness + color),
-    )
-    head(x2, y2, ux, uy)
-    if double { head(x1, y1, -ux, -uy) }
+  if sides {
+    let m = if margin == auto { calc.max(gp, 0.12) } else { abs-pt(margin, "margin") / s }
+    let n = fr.normal
+    let plane = g.dot(model.faces.at(face).verts.first(), n)
+    for st in model.stickers.filter(st => st.face != face) {
+      // stickers with an edge on this face's plane touch the face
+      let on-plane = st.poly.filter(p => calc.abs(g.dot(p, n) - plane) < 1e-6).map(p => g.to-local(fr, p))
+      if on-plane.len() < 2 { continue }
+      let dir = g.unit2(g.sub2(on-plane.last(), on-plane.first()))
+      let along = on-plane.sorted(key: p => g.dot2(p, dir))
+      let (a, b) = (along.first(), along.last())
+      let out = (-dir.at(1), dir.at(0))
+      if g.dot2(out, g.centroid2((a, b))) < 0 { out = g.scale2(out, -1) }
+      let poly = (
+        g.add2(a, g.scale2(out, m)),
+        g.add2(b, g.scale2(out, m)),
+        g.add2(b, g.scale2(out, m + side)),
+        g.add2(a, g.scale2(out, m + side)),
+      )
+      shapes.push((poly: g.inset(poly, gp), name: c.faces.at(st.face).at(st.index)))
+    }
   }
 
-  let rows = c.faces.at(face)
-  box(width: total * 1pt, height: total * 1pt, fill: body, radius: radius, {
-    for r in range(n) {
-      for col in range(n) { cell(off + col * p, off + r * p, s, s, rows.at(r).at(col)) }
+  let (min, max) = g.bbox(shapes.map(sh => sh.poly).flatten().chunks(2))
+  let to-pt(p) = ((p.at(0) - min.at(0)) * s, (p.at(1) - min.at(1)) * s)
+  let center(pos) = to-pt(g.centroid2(own.at(str(index-of(c, face, pos)))))
+
+  box(width: (max.at(0) - min.at(0)) * s * 1pt, height: (max.at(1) - min.at(1)) * s * 1pt, fill: body, radius: radius, {
+    for sh in shapes { shape(sh.poly.map(to-pt), fill-of(sh.name, palette, hidden), stroke, radius) }
+    for a in arrows {
+      let a = if type(a) == array { (from: a.at(0), to: a.at(1)) } else { a }
+      arrow(
+        center(a.from),
+        center(a.to),
+        arrow-head * s,
+        a.at("color", default: arrow-color),
+        arrow-thickness,
+        double: a.at("double", default: false),
+      )
     }
-    if sides {
-      let (above, below, left, right) = (strip("top"), strip("bottom"), strip("left"), strip("right"))
-      for i in range(n) {
-        cell(off + i * p, 0, s, t, above.at(i))
-        cell(off + i * p, off + grid + m, s, t, below.at(i))
-        cell(0, off + i * p, t, s, left.at(i))
-        cell(off + grid + m, off + i * p, t, s, right.at(i))
-      }
-    }
-    for a in arrows { arrow(a) }
   })
 }

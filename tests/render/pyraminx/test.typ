@@ -1,0 +1,15 @@
+#import "/src/lib.typ": *
+#set page(width: auto, height: auto, margin: 2mm)
+
+#let c = cube(event: "pyraminx", scramble: "U L R' B u l'")
+#draw(c, view: "full")
+#h(4mm)
+#draw(c, view: "tip", tip: "U")
+#h(4mm)
+#draw(c, view: "tip", tip: "B", gap: 1pt, body: black, stroke: none)
+#h(4mm)
+#draw(c, view: "face", face: "F")
+#h(4mm)
+#draw(c, view: "face", face: "D", sides: true)
+#h(4mm)
+#draw(c, view: "net", sticker: 4mm)

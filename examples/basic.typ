@@ -39,7 +39,7 @@
   align: center + bottom,
   [#draw(cube(scramble: "M2 E2 S2"), view: "net") \ checkerboard],
   [#draw(case(sune), view: "oll", gap: 1pt, body: black, stroke: none, radius: 1pt, sticker: 6mm) \ dark style],
-  [#draw(cube(size: 4, scramble: "Rw U 3Rw' F2"), view: "full", sticker: 4.5mm) \ 4×4],
+  [#draw(cube(event: "4x4", scramble: "Rw U 3Rw' F2"), view: "full", sticker: 4.5mm) \ 4×4],
 )
 
 == Step by step
