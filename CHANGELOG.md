@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-09
+
 ### Added
 
 - Project scaffold: package manifest, CI, test layout, manual skeleton.
@@ -50,4 +52,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gap` shrinks stickers in place instead of adding space between them.
 - The strip thickness parameter is `side-length` (was `side`).
 
-[Unreleased]: https://github.com/ANCuber/cubst/commits/main
+[Unreleased]: https://github.com/ANCuber/cubst/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ANCuber/cubst/releases/tag/v0.1.0
