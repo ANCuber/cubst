@@ -16,9 +16,10 @@
 }
 #assert(after("R++ R--") == s and after("R++") == after("R-- R-- R-- R--"))
 
-// U: F's top edge (1) and top corners (6, 10) come from R; the centre stays
+// U: F's edge on U (1, at the upper right) and its corners (6, 7) come from R;
+// the centre stays
 #let u = after("U")
-#assert(sticker(u, "F", 1) == sc.R and sticker(u, "F", 6) == sc.R and sticker(u, "F", 10) == sc.R)
+#assert(sticker(u, "F", 1) == sc.R and sticker(u, "F", 6) == sc.R and sticker(u, "F", 7) == sc.R)
 #assert(sticker(u, "F", 0) == sc.F and sticker(u, "F", 3) == sc.F)
 #assert(sticker(u, "L", 1) == sc.F and sticker(u, "R", 1) == sc.BR)
 #assert(face(u, "D") == face(s, "D"))
@@ -37,8 +38,8 @@
 #for (f, col) in sc { assert(scrambled.faces.values().flatten().filter(x => x == col).len() == 11) }
 
 // the cut option changes the geometry but not what moves do
-#let narrow = cube(event: "megaminx", options: (cut: 0.3))
-#assert(narrow.params.cut == 0.3 and s.params.cut == 0.5)
+#let narrow = cube(event: "megaminx", options: (cut: 0.33))
+#assert(narrow.params.cut == 0.33 and s.params.cut == 0.4)
 #assert(apply(narrow, "R++ D-- R-- D++ U F' BL2 DBR").faces == scrambled.faces)
 #for m in ("U", "R++", "DBL") { assert(is-solved(apply(narrow, (m + " ") * 5))) }
 #assert(apply(narrow, "U").faces == apply(s, "U").faces)

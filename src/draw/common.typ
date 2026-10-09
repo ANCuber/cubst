@@ -37,6 +37,15 @@
   }
 }
 
+/// A face name for `labels: "faces"`: text on a small white pill, since the
+/// centre of a face is where its sticker outlines meet. `s` is the unit in pt.
+#let name-label(name, s) = box(
+  fill: white,
+  inset: (x: 0.12 * s * 1pt, y: 0.05 * s * 1pt),
+  radius: 0.1 * s * 1pt,
+  text(size: 0.55 * s * 1pt, name),
+)
+
 /// An arrow between two points (floats in pt), with a filled head at the end
 /// and, if `double`, at the start as well.
 #let arrow(from, to, head, color, thickness, double: false) = {

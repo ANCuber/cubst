@@ -7,6 +7,8 @@
 #draw(c, view: "face", face: "F", gap: 1pt, body: black, stroke: none)
 #h(4mm)
 #draw(cube(event: "megaminx", scramble: "U"), view: "face", face: "F", sides: true, arrows: (((6, 10)),))
+#h(4mm)
+#draw(c, view: "full", sticker: 4mm)
 #linebreak()
 #v(2mm)
 #draw(c, view: "net", sticker: 3.5mm)

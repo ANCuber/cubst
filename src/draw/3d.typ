@@ -1,7 +1,9 @@
 // 3D renderer built on CeTZ: an orthographic view of the puzzle from a
-// camera direction, drawing the faces that point towards the camera. The
-// puzzle supplies the cameras (one for the `full` view, one per tip for the
-// pyraminx); other faces are shown by rotating the *state*.
+// camera direction, drawing the stickers that point towards the camera, far
+// ones first. The puzzle supplies the cameras (one for the `full` view, one
+// per tip for the pyraminx); other faces are shown by rotating the *state*.
+// A sticker's normal is its face's, unless the model gives the sticker its
+// own (Square-1, whose side stickers point anywhere).
 
 #import "../deps.typ": cetz
 #import "../geom.typ" as g
@@ -41,19 +43,31 @@
   let ys = g.unit(g.project-onto-plane(camera.up, zs))
   let xs = g.cross(ys, zs)
   let proj(p) = (g.dot(p, xs) * view-scale, g.dot(p, ys) * view-scale)
-  let visible = model.faces.pairs().filter(((name, f)) => g.dot(f.normal, zs) > 1e-6).map(((name, f)) => name)
+  let normal-of(st) = if "normal" in st { st.normal } else { model.faces.at(st.face).normal }
+  // a 2D frame in the sticker's plane, for the gap inset
+  let frame-of(st) = if "normal" in st {
+    let n = st.normal
+    g.frame(g.centroid(st.poly), n, if calc.abs(n.at(1)) > 0.9 { (0, 0, 1) } else { (0, 1, 0) })
+  } else { model.faces.at(st.face).frame }
+  let visible = model.stickers.filter(st => g.dot(normal-of(st), zs) > 1e-6)
   assert(visible.len() > 0, message: "cubst: the camera sees no face")
+  // convex puzzles need no depth order; a shape-shifter is drawn far to near
+  let ordered = if model.stickers.any(st => "normal" in st) {
+    visible.sorted(key: st => g.dot(g.centroid(st.poly), zs))
+  } else { visible }
 
   box(cetz.canvas(length: sticker, {
     import cetz.draw: line
-    for name in visible {
-      let f = model.faces.at(name)
-      if body != none { line(..f.verts.map(proj), close: true, fill: body, stroke: none) }
-      for st in model.stickers.filter(st => st.face == name) {
-        // inset in the face plane, then back to 3D and onto the screen
-        let poly = g.inset(st.poly.map(p => g.to-local(f.frame, p)), gp).map(q => g.from-local(f.frame, q))
-        line(..poly.map(proj), close: true, fill: fill-of(c.faces.at(name).at(st.index), palette, hidden), stroke: stroke)
+    if body != none {
+      for (name, f) in model.faces {
+        if g.dot(f.normal, zs) > 1e-6 and f.verts.len() > 2 { line(..f.verts.map(proj), close: true, fill: body, stroke: none) }
       }
+    }
+    for st in ordered {
+      // inset in the sticker's plane, then back to 3D and onto the screen
+      let fr = frame-of(st)
+      let poly = g.inset(st.poly.map(p => g.to-local(fr, p)), gp).map(q => g.from-local(fr, q))
+      line(..poly.map(proj), close: true, fill: fill-of(c.faces.at(st.face).at(st.index), palette, hidden), stroke: stroke)
     }
   }))
 }

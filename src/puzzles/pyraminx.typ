@@ -111,6 +111,14 @@
   parse: (alg, params) => notation.scan(alg, token, make-move),
   format: m => m.base + notation.format-suffix(m.amount, m.order),
   views: ("face", "tip", "full", "net"),
+  // `full` has a face in front and a vertex on top (F and U by default)
+  front-top: ("F", "U"),
+  tops: ("U", "L", "R", "B"),
+  direction: (params, name, role) => if role == "top" {
+    if name in verts { g.unit(verts.at(name)) } else { none }
+  } else {
+    if name in the-model.faces { the-model.faces.at(name).normal } else { none }
+  },
   cameras: params => (
     // from the front-right and slightly below, tip on top: F large on the
     // left, R on the right, the D base visible underneath

@@ -11,7 +11,7 @@
 
 == case(T perm)
 #show-faces(case("R U R' U' R' F R2 U' R' U' R U R' F'"))
-#draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "pll", sticker: 12mm)
+#draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "ll", sticker: 12mm)
 
 == case(Sune)
 #show-faces(case("R U R' U R U2 R'"))

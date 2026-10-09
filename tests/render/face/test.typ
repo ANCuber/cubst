@@ -13,9 +13,9 @@
 #draw(c, view: "net", sticker: 4mm)
 #linebreak()
 #v(2mm)
-// without strips (the default for `face`), and pll with strips switched off
+// without strips (the default for `face`), and ll with strips switched off
 #draw(c, view: "face", face: "F", sticker: 4mm)
 #h(2mm)
 #draw(c, view: "face", face: "F", sides: false, sticker: 4mm, body: black, gap: 1pt, stroke: none)
 #h(2mm)
-#draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "pll", sides: false, sticker: 4mm)
+#draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "ll", sides: false, sticker: 4mm)

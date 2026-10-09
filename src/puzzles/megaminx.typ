@@ -5,10 +5,13 @@
 // DBR, B, DBL, DL, each sitting below the gap between two upper faces; D is
 // at the bottom. Face inradius is 1.5 units.
 //
+// The `full` view looks straight down one face (F unless `draw(face:)` says
+// otherwise, with `top:` up), so that face and its five neighbours are seen.
+//
 // Each face has eleven stickers: 0 is the centre, 1–5 the edge stickers and
 // 6–10 the corner stickers, both clockwise from the top of the head-on
-// picture. Side faces are drawn with U at the top, U with B at the top, D
-// with F at the top.
+// picture. Every face is drawn with a vertex at the top: U with B at the
+// top, D with F at the top, the side faces with U at the upper right.
 //
 // Notation (WCA): face turns U F R L BL BR DR DL DBR DBL B D with ' 2 2';
 // R++ / R-- turn everything except L, D++ / D-- everything except U, by two
@@ -27,9 +30,14 @@
 // Options a user can pass with `cube(event: "megaminx", options: (..))`:
 // `cut` is the size of the centre pentagon (its inradius over the face
 // inradius). It changes the sticker shapes and the layer depth.
-#let options = (cut: 0.5)
+#let options = (cut: 0.4)
 
 #let build(cut) = {
+  // An edge sticker is the strip outside its own cut line and inside the two
+  // neighbouring ones; those cross the face edge only when the cut is deeper
+  // than cos 72° ≈ 0.309 of the inradius, so smaller cuts leave the edge
+  // stickers floating inside the face. That is allowed (the manual warns)
+  // but the geometry must stay non-degenerate.
   assert(
     type(cut) in (int, float) and cut > 0.05 and cut < 0.95,
     message: "cubst: megaminx cut must be a number between 0.05 and 0.95, got " + repr(cut),
@@ -80,17 +88,23 @@
     let diff(a, b) = calc.abs(calc.rem-euclid((a - b).deg() + 180, 360) - 180)
     ring.pairs().sorted(key: ((name, a)) => diff(az, a)).first().at(0)
   }
-  // scale so that the face inradius is 1.5
+  // scale so that one unit is the edge of the centre pentagon at the default
+  // cut (a pentagon of inradius r has edge 2 r tan 36°), like a cube sticker
   let n0 = normals.first()
   let ring0 = verts.sorted(key: v => -g.dot(v, n0)).slice(0, 5)
   let c0 = g.centroid(ring0)
   let fr0 = g.frame(c0, n0, (0, 0, 1))
   let local0 = ring0.map(v => g.to-local(fr0, v)).sorted(key: g.clock-angle)
   let inradius-raw = g.norm2(g.centroid2((local0.at(0), local0.at(1))))
-  let s = 1.5 / inradius-raw
+  let s = (1 / (2 * options.cut * calc.tan(36deg))) / inradius-raw
   let verts = verts.map(v => g.scale(v, s))
 
+  // head-on orientation: U with B at the top, D with F at the top, and the
+  // side faces turned 36° clockwise from "U at the top", so that every face
+  // has a vertex at the top and a horizontal bottom edge (U then sits at the
+  // upper right of a side face)
   let ups = (U: (0, 0, -1), D: (0, 0, 1))
+  let up-of(name, n) = ups.at(name, default: g.rotate((0, 1, 0), n, 36deg))
   let faces = (:)
   let stickers = ()
   let inradius = none
@@ -99,7 +113,7 @@
     let name = name-of(n)
     let ring = verts.sorted(key: v => -g.dot(v, n)).slice(0, 5)
     let center = g.centroid(ring)
-    let fr = g.frame(center, n, ups.at(name, default: (0, 1, 0)))
+    let fr = g.frame(center, n, up-of(name, n))
     let local = ring.map(v => g.to-local(fr, v)).sorted(key: g.clock-angle)
     faces.insert(name, (normal: n, frame: fr, verts: local.map(q => g.from-local(fr, q))))
     inradius = g.dot(ring.first(), n)
@@ -184,8 +198,12 @@
     notation.scan(alg, token, caps => make-move(caps, m))
   },
   format: format,
-  views: ("face", "net"),
-  cameras: params => (full: none, tips: (:)),
+  views: ("face", "full", "net"),
+  // straight down the front face (F), top face (U) up, so the front face and
+  // its five neighbours fill a decagon; `draw(face:, top:)` turns this camera
+  // to any other adjacent pair
+  cameras: params => (full: (dir: model(params).faces.F.normal, up: (0, 1, 0)), tips: (:)),
+  front-top: ("F", "U"),
   net: params => (
     roots: ("U", "D"),
     edges: (

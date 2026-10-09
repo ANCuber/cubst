@@ -48,5 +48,6 @@
 #draw(s, view: "face", face: "D", sides: true)
 #draw(s, view: "tip", tip: "U")
 #draw(s, view: "tip", tip: "B")
+#assert(draw(s, view: "tip") == draw(s, view: "tip", tip: "U"))
 #draw(s, view: "full")
 #draw(s, view: "net")

@@ -13,7 +13,7 @@
   gutter: 7mm,
   align: center + horizon,
   draw(case("R U R' U R U2 R'"), view: "oll", sticker: 5mm, stroke: stroke),
-  draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "pll", sticker: 5mm, stroke: stroke, arrows: (
+  draw(case("R U R' U' R' F R2 U' R' U' R U R' F'"), view: "ll", sticker: 5mm, stroke: stroke, arrows: (
     (from: (0, 2), to: (2, 2), double: true, color: ink),
     (from: (1, 0), to: (1, 2), double: true, color: ink),
   )),

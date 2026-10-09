@@ -23,26 +23,28 @@
 }
 
 /// A solved puzzle for the given event ("3x3", "4x4", .., "skewb", "pyraminx",
-/// "megaminx"). `options` are puzzle-specific settings, e.g. `(cut: 0.5)` on
+/// "megaminx"). `options` are puzzle-specific settings, e.g. `(cut: 0.4)` on
 /// the megaminx.
 #let solved(event: "3x3", scheme: auto, options: (:)) = {
   let (puzzle, params) = registry.resolve(event, options: options)
   let p = registry.puzzles.at(puzzle)
   let faces = (p.faces)(params)
   let scheme = if scheme == auto { (p.default-scheme)(params) } else { scheme }
-  for f in faces {
+  for f in (p.at("scheme-faces", default: p.faces))(params) {
     assert(f in scheme, message: "cubst: scheme for " + (p.event-name)(params) + " is missing face " + f)
   }
-  let counts = (:)
-  for s in (p.model)(params).stickers { counts.insert(s.face, counts.at(s.face, default: 0) + 1) }
-  (
+  let base = (
     kind: "puzzle",
     puzzle: puzzle,
     event: (p.event-name)(params),
     params: params,
     scheme: scheme,
-    faces: faces.map(f => (f, (scheme.at(f),) * counts.at(f))).to-dict(),
   )
+  // a puzzle whose geometry depends on the state builds its own solved state
+  if "solved" in p { return base + (p.solved)(params, scheme) }
+  let counts = (:)
+  for s in (p.model)(params).stickers { counts.insert(s.face, counts.at(s.face, default: 0) + 1) }
+  base + (faces: faces.map(f => (f, (scheme.at(f),) * counts.at(f))).to-dict())
 }
 
 #let assert-face(c, name, who: "cubst") = {
@@ -83,24 +85,33 @@
   c.faces.at(name).at(index-of(c, name, p))
 }
 
-/// True when every face shows a single color.
+/// True when every face shows a single color (a puzzle may define its own
+/// test, e.g. the Square-1, whose side stickers never form one face).
 #let is-solved(c) = {
   assert-puzzle(c, who: "is-solved")
+  let hook = registry.of(c).at("is-solved", default: none)
+  if hook != none { return hook(c) }
   c.faces.values().all(stickers => stickers.all(s => s == stickers.first()))
 }
 
 /// Piece identity of every sticker, keyed "face:index". Two stickers are on
-/// the same piece exactly when every layer of the puzzle moves both or neither.
+/// the same piece exactly when every layer of the puzzle moves both or neither
+/// (or, when the model names the piece of each sticker, when it says so).
 #let pieces(c) = {
   let model = registry.model(c)
   let out = (:)
   for s in model.stickers {
+    let key = s.face + ":" + str(s.index)
+    if "piece" in s {
+      out.insert(key, s.piece)
+      continue
+    }
     let p = g.centroid(s.poly)
     let sig = model.regions.map(r => {
       let t = g.dot(p, r.axis)
       if t >= r.lo - 1e-6 and t <= r.hi + 1e-6 { "1" } else { "0" }
     }).join()
-    out.insert(s.face + ":" + str(s.index), sig)
+    out.insert(key, sig)
   }
   out
 }

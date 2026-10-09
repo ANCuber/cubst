@@ -11,7 +11,7 @@
 /// - `inverted`: apply the inverse instead, giving the state that `scramble`
 ///   solves. This is what you want for case diagrams.
 /// - `scheme`: face → color name; `auto` is the puzzle's default scheme.
-/// - `options`: puzzle-specific settings, e.g. `(cut: 0.5)` on the megaminx.
+/// - `options`: puzzle-specific settings, e.g. `(cut: 0.4)` on the megaminx.
 #let cube(event: "3x3", scramble: none, inverted: false, scheme: auto, options: (:)) = {
   let c = solved(event: event, scheme: scheme, options: options)
   if scramble == none {

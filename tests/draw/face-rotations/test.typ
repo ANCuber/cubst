@@ -16,7 +16,7 @@
   )
 }
 
-// `pll` is `face` looking at U with strips; `face` alone has none
-#assert(draw(c, view: "pll") == draw(c, view: "face", face: "U", sides: true))
+// `ll` is `face` looking at U with strips; `face` alone has none
+#assert(draw(c, view: "ll") == draw(c, view: "face", face: "U", sides: true))
 #assert(draw(c, view: "face", face: "U") == draw-face(c, face: "U", sides: false))
-#assert(draw(c, view: "pll", sides: false) == draw(c, view: "face", face: "U"))
+#assert(draw(c, view: "ll", sides: false) == draw(c, view: "face", face: "U"))

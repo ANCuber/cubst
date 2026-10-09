@@ -7,12 +7,14 @@
 #import "skewb.typ" as skewb
 #import "pyraminx.typ" as pyraminx
 #import "megaminx.typ" as megaminx
+#import "square1.typ" as square1
 
 #let puzzles = (
   cube: cube.puzzle,
   skewb: skewb.puzzle,
   pyraminx: pyraminx.puzzle,
   megaminx: megaminx.puzzle,
+  square1: square1.puzzle,
 )
 
 /// `(puzzle: name, params: ..)` for an event such as "3x3", "7x7", "skewb".
@@ -38,11 +40,16 @@
       return (puzzle: name, params: params + defaults + options)
     }
   }
-  panic("cubst: unknown event " + repr(event) + "; expected NxN (e.g. \"3x3\"), \"skewb\", \"pyraminx\" or \"megaminx\"")
+  panic("cubst: unknown event " + repr(event) + "; expected NxN (e.g. \"3x3\"), \"skewb\", \"pyraminx\", \"megaminx\" or \"square1\"")
 }
 
 /// The puzzle definition behind a state.
 #let of(c) = puzzles.at(c.puzzle)
 
-/// The geometric model behind a state.
-#let model(c) = (of(c).model)(c.params)
+/// The geometric model behind a state. Most puzzles have a fixed model per
+/// parameter set; a puzzle whose shape depends on the state (Square-1)
+/// provides `model-of(state)` instead.
+#let model(c) = {
+  let p = of(c)
+  if "model-of" in p { (p.model-of)(c) } else { (p.model)(c.params) }
+}

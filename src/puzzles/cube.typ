@@ -29,8 +29,9 @@
   }).to-dict()
 }
 
+// "3x3", "3*3" or "3x3x3": the separator may be `x` or `*`
 #let event(name) = {
-  let m = name.match(regex("^(\d+)x(\d+)(?:x(\d+))?$"))
+  let m = name.match(regex("^(\d+)[x*](\d+)(?:[x*](\d+))?$"))
   if m == none { return none }
   let n = int(m.captures.at(0))
   if n < 1 or m.captures.at(1) != m.captures.at(0) { return none }
@@ -124,8 +125,9 @@
   model: model,
   parse: parse,
   format: format,
-  views: ("face", "pll", "oll", "f2l", "full", "net"),
+  views: ("face", "ll", "oll", "f2l", "full", "net"),
   cameras: params => (full: (dir: g.unit((1, 1, 1)), up: (0, 1, 0)), tips: (:)),
+  front-top: ("F", "U"),
   net: params => (
     roots: ("F",),
     edges: (("F", "U"), ("F", "D"), ("F", "L"), ("F", "R"), ("R", "B")),

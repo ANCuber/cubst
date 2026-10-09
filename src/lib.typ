@@ -16,5 +16,6 @@
 #import "draw/2d.typ": draw-face
 #import "draw/3d.typ": draw-3d
 #import "draw/net.typ": draw-net
+#import "draw/layers.typ": draw-layers
 #import "colors.typ": colors
 #import "puzzles/registry.typ": puzzles

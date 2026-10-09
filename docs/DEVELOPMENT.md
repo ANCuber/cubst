@@ -64,17 +64,35 @@ Every puzzle is a dictionary exported as `puzzle` from its file. The fields:
 | `name` | `"cube"`, `"skewb"`, … |
 | `event(str)` | params for an event name, or `none` if it is not this puzzle (`"3x3"` → `(size: 3)`) |
 | `event-name(params)` | the canonical event name for display |
-| `options` | optional: user-settable parameters with their defaults (`(cut: 0.5)` on the megaminx); `registry.resolve` merges `cube(options: ..)` into `params` and rejects unknown keys |
+| `options` | optional: user-settable parameters with their defaults (`(cut: 0.4)` on the megaminx); `registry.resolve` merges `cube(options: ..)` into `params` and rejects unknown keys |
+| `draw-options` | optional: puzzle-specific drawing settings with their defaults (Square-1 `(slices: auto, direction: "horizontal", turn: false)`); `draw(options: ..)` is validated against it the same way |
 | `faces(params)` | ordered face names |
 | `default-scheme(params)` | face → color name |
 | `model(params)` | the geometry, see below |
 | `parse(alg, params)`, `format(move)` | notation in and out |
 | `views` | the views this puzzle supports |
-| `cameras(params)` | `(full: (dir, up) or none, tips: (name → (dir, up)))` |
+| `default-view` | optional: what `draw(c)` with `view: auto` draws (`"full"` when absent; `"layers"` on the Square-1) |
+| `cameras(params)` | `(full: (dir, up) or none, tips: (name → (dir, up)))`; `full` is for the `front-top` pair, `draw(tip:)` picks from `tips` |
+| `front-top` | optional: the (front, top) pair the `full` camera is defined for, `("F", "U")`; with it `draw(face:, top:)` turns the camera to any pair that sits the same way (`full-camera` in `views.typ`); without it they are errors |
+| `tops`, `direction(params, name, role)` | optional: the names allowed as `top` (default: the faces) and the direction of a name in role `"face"` or `"top"`, `none` if unknown (default: the face normal); the pyraminx's tops are its vertices |
+| `fixed-face` | optional: `true` rejects `draw(face:, top:)` altogether (Square-1) |
 | `net(params)` | `(roots: (..), edges: ((parent, child), ..))` |
 | `rows(params)` | optional: `face()` reshapes the flat array into rows (cube) |
 | `index-of(params, face, pos)` | optional: user position → sticker index (cube: `(row, col)`) |
 | `index-info(params, index)` | optional: extra fields for mask `info` (cube: `row`, `col`) |
+| `scheme-faces(params)` | optional: the keys a scheme must have when they differ from `faces` (Square-1: `U D F B R L`, while its public faces are `U D`; the side stickers live in a third, internal array `E`) |
+| `solved(params, scheme)` | optional: extra state fields for a puzzle that builds its own solved state (Square-1: `faces` and `layout`) |
+| `model-of(state)` | optional: the model of a state whose geometry depends on it; `registry.model` prefers it over `model(params)` |
+| `apply(state, moves)` | optional: replaces the generic move engine (Square-1 moves its `layout` and rebuilds `faces`) |
+| `is-solved(state)` | optional: replaces "every face one colour" |
+| `layers` | optional: the faces the `layers` renderer draws (Square-1: `U D`); also makes `net` use that renderer with the equator band |
+| `strips` | optional: `"radial"` makes `draw-face` draw side strips as trapezoids whose ends follow the rays from the face centre, flush with the face (Square-1); default straight rectangles |
+| `slices(params)` | optional: normals of the slice planes through the origin, drawn as lines by `draw-face` when asked (`slices: true`) |
+
+A sticker may also carry `normal` (its own outward normal, when the face's
+does not apply), `piece` (an explicit piece id, used instead of the region
+signature) and `band: true` (an equator sticker for the layers net). The
+Square-1 uses all three.
 
 `model(params)` returns:
 
@@ -193,22 +211,38 @@ look at view names, masks or puzzle names; everything comes from the model.
 * **Straight-on** (`2d.typ`): the face's sticker polygons in the face frame.
   Side strips are generic: any sticker on another face with an edge on this
   face's plane is drawn as a thin rectangle outside that edge. Arrows go
-  between sticker centroids; positions are resolved by `index-of`. `labels`
-  writes each index at its centroid (the manual uses it with an all-white
-  palette for the index pictures). `face: auto` is the first entry of the
-  puzzle's `faces` list, so the default face exists on every puzzle.
+  between sticker centroids; positions are resolved by `index-of`. `labels:
+  true` writes each index at its centroid, `labels: "faces"` the face name at
+  the face centre on a white pill (`name-label` in `common.typ`, since the
+  outlines meet there); the manual uses both with an all-white palette.
+  `face: auto` is the first entry of the puzzle's `faces` list, so the
+  default face exists on every puzzle.
 * **Net** (`net.typ`): the puzzle gives a tree of attachments; each child is
   placed by a rigid 2D transform that maps its shared edge onto the parent's.
   `spacing` pushes each face away from its parent along the line between
   their centres, accumulated down the tree. Several roots (megaminx) are laid
-  side by side.
+  side by side. `labels` works as on the straight-on view.
 * **3D** (`3d.typ`): orthographic projection along a camera direction with an
-  up hint; faces with `normal·dir > 0` are drawn (convex puzzles need no depth
-  sort). Gaps are insets in the face plane. The projection is scaled by
+  up hint; stickers with `normal·dir > 0` are drawn (the face's normal, or
+  the sticker's own when the model gives one, in which case they are also
+  depth-sorted far to near; convex puzzles need no sort). Gaps are insets in
+  the sticker's plane.
+* **Layers** (`layers.typ`): the faces in the puzzle's `layers` list drawn
+  with `draw-face`, side by side or top to bottom (`direction`); with
+  `band: true` the stickers tagged `band` that face the front are shown
+  between them, left to right. Vertical with the band is the Square-1 net:
+  the layers are drawn with `turn: auto` (rotated so the first slice is
+  vertical) and `slices: "through"` (box symmetric about the centre, line
+  spanning it), the band box is centred on the split and holds the spacing
+  above and below with the line drawn through, and the grid has no gutter,
+  so one line runs through the whole net. The projection is scaled by
   √1.5 so cubes match the classic isometric drawing. Cameras come from the
   puzzle: `full` (cube/skewb isometric; pyraminx from the front-right and
   slightly below, so F, R and the D base show with the tip on top; megaminx
-  none) and `tips` (pyraminx, looking down a vertex).
+  straight down F with U up, so F and its five neighbours fill a decagon),
+  each defined for F in front and U on top and turned by `full-camera` for
+  other `face:`/`top:` pairs, and `tips` (pyraminx, looking down the vertex
+  named by `tip:`).
 
 ### The `views` table and the options
 
@@ -218,7 +252,7 @@ full-view = (kind: "3d",  camera: "full", mask: none)
 net-view  = (kind: "net", mask: none)
 
 face: face-view,
-pll:  (..face-view, face: "U", sides: true),
+ll:   (..face-view, face: "U", sides: true),
 oll:  (..face-view, face: "U", sides: true, mask: c => keep-colors(c, c.scheme.U)),
 full: full-view,
 f2l:  (..full-view, mask: c => hide-pieces(c, containing: c.scheme.U)),
@@ -227,32 +261,64 @@ net:  net-view,
 ```
 
 Three generic views, one per renderer kind; the others are shorthands made by
-spreading and overriding. `draw` checks the view exists, then that the
-puzzle lists it in its `views`, applies the default mask unless `mask:` is
-`none` or a function, resolves the camera (`full`, or `tips.at(tip)`), and
+spreading and overriding. `draw` resolves `view: auto` to the puzzle's
+`default-view`, checks the view exists, then that the puzzle lists it in its
+`views`, applies the default mask unless `mask:` is
+`none` or a function, resolves the camera (`full-camera`: the puzzle's `full`
+camera turned from its `front-top` pair to `face:`/`top:`, or `tips.at(tip)`), and
 forwards one options dictionary to the renderer closure for the kind.
 
-**All appearance options are parameters of `draw` itself**, each with one
-default, so an option means the same in every view and unknown options fail
-at the call. Options a kind does not use are ignored on purpose.
+**All appearance parameters belong to `draw` itself**, each with one
+default, so a parameter means the same in every view and unknown ones fail
+at the call. Parameters a kind does not use are ignored on purpose. The one
+exception: a setting that exists for a single puzzle (Square-1 `slices`,
+`direction` and `turn`) is not a parameter but a key of
+`draw(options: ..)`, declared by the puzzle in `draw-options` with its
+default and validated like `cube(options: ..)`, so `draw`'s signature does
+not grow with every puzzle.
 
-Rules when you add an option: add it to `draw` with a default; add it to the
-`options` dictionary and to every renderer closure that uses it; give it the
-same meaning and default in the renderer's own signature; add a row to the
-options table in `docs/manual.typ`.
+Rules when you add a parameter: add it to `draw` with a default; add it to
+the `options` dictionary and to every renderer closure that uses it; give it
+the same meaning and default in the renderer's own signature; add a row to
+the parameter table in `docs/manual.typ`.
 
 ### Per-puzzle restrictions
 
 | puzzle | views | notes |
 | --- | --- | --- |
-| cube | face pll oll full f2l net | arrows take `(row, col)` |
+| cube | face ll oll full f2l net | arrows take `(row, col)` |
 | skewb | face full net | rotation `y` (order 4, about +y) |
 | pyraminx | face tip full net | `tip:` picks U, L, R or B; rotations `y` (about the U vertex) and `z` (about the F face normal), both order 3 |
-| megaminx | face net | no 3D camera |
+| megaminx | face full net | `full` looks straight down the front face (F by default): that face and its five neighbours; one unit is the centre pentagon's edge at the default cut |
+| square1 | face layers obl cs net | public faces U and D; the pieces' sides and the equator sit in an internal array `E` (not flat, not documented for users); `draw(face:, top:)` are rejected (`fixed-face`); `/` fails at compile time when a corner straddles the slice; no groups, commutators or rotations; no 3D view (section 11) |
 
 Side strips and arrows work on every puzzle (arrows take sticker indices
 outside cubes). Asking for a view a puzzle lacks fails with a `cubst:`
 message listing what it supports.
+
+### The Square-1
+
+The Square-1 is the one puzzle whose geometry changes with the state: a
+corner turned by 30° lands where an edge and half a corner were, so sticker
+positions are not fixed and the generic engine (a permutation of fixed
+stickers) does not apply. `src/puzzles/square1.typ` therefore keeps a `layout`
+in the state: two layers of 12 slots of 30° (a corner takes two), the piece in
+each slot with its cap colour and side colours in slot order, and whether the
+equator is flipped. `build(layout, scheme)` turns a layout into a model
+(polygons, per-sticker normals and piece ids) plus the colour arrays, in a
+fixed order, so `faces` and the model always agree; `sync` copies colours
+(and the `none` of masks) from `faces` back into the layout before a move.
+The slice is only legal when slots 0|11 and 5|6 hold different pieces in
+both layers; it swaps the right halves reversed, reverses the side order of
+the pieces that turned over, and mirrors the right equator piece across the
+slice normal. Directions: `(x, y)` turns the top clockwise seen from above
+(slot index + x) and the bottom clockwise seen from below (slot index − y),
+which is the reading under which the usual scramble openings `(0,-1)/`,
+`(1,0)/`, `(4,0)/`, `(0,2)/` are legal. Its views are drawn by `draw-face`
+with radial strips and slice lines (`strips`, `slices`) and composed by
+`draw-layers`; the net's band is the two equator stickers facing the front
+(normal `z > |x|`), which is all one needs to see whether the equator is
+flipped.
 
 ## 6. Adding a puzzle
 
@@ -267,8 +333,10 @@ message listing what it supports.
    per colour) and `tests/render/<name>` for its views.
 4. Document the sticker index order and notation in the manual.
 
-Nothing else needs to change: states, masks, pieces and all three renderers
-work from the model alone.
+Nothing else needs to change: states, masks, pieces and all renderers work
+from the model alone. Only a puzzle whose shape depends on its state needs
+the optional hooks (`solved`, `model-of`, `apply`, `is-solved`); the Square-1
+is the worked example.
 
 ## 7. Dependencies
 
@@ -318,5 +386,11 @@ CI.
 * FTO, after WCA releases the official notation.
 * Arrows only on the straight-on view; maybe ones for "x y z" operations can be added.
 * No `mirror`.
-* Megaminx: no 3D view.
+* Megaminx: no rotations, so the `full` view always shows the U half.
+* Square-1 in 3D: the model already gives every sticker its own normal and
+  the 3D renderer culls and depth-sorts per sticker, so a `full` view only
+  needs `"full"` in the puzzle's `views` and a camera in `cameras`. It was
+  left out because a shape-shifted Square-1 is hard to read in 3D; the
+  protruding equator and star-shaped layers would need a better camera or
+  outlines to work.
 * Even-sized cubes have no fixed centres; the scheme still names a "U color".

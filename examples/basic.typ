@@ -15,7 +15,7 @@
   gutter: 1cm,
   align: center + bottom,
   [#draw(case(sune), view: "oll") \ Sune: `#sune`],
-  [#draw(case(tperm), view: "pll", arrows: (
+  [#draw(case(tperm), view: "ll", arrows: (
       (from: (0, 2), to: (2, 2), double: true), // UBR ↔ UFR corners
       (from: (1, 0), to: (1, 2), double: true), // UL ↔ UR edges
     )) \ T perm],

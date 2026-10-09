@@ -75,6 +75,7 @@
   format: m => m.base + notation.format-suffix(m.amount, m.order),
   views: ("face", "full", "net"),
   cameras: params => (full: (dir: g.unit((1, 1, 1)), up: (0, 1, 0)), tips: (:)),
+  front-top: ("F", "U"),
   net: params => (
     roots: ("F",),
     edges: (("F", "U"), ("F", "D"), ("F", "L"), ("F", "R"), ("R", "B")),

@@ -79,16 +79,16 @@ apply(c, alg)
 #table(
   columns: 2,
   stroke: none,
-  [`event`], [which puzzle; case-insensitive, `"3x3x3"` is accepted for `"3x3"`],
+  [`event`], [which puzzle; case-insensitive, `"3x3x3"`, `"3*3"` and `"3*3*3"` are accepted for `"3x3"`],
   [`scramble`], [moves applied to the solved puzzle, in the order written],
   [`inverted`], [apply the inverse instead, giving the state that `scramble` *solves*],
   [`scheme`], [which color name sits on which face when solved; `auto` = the puzzle's default (@scheme)],
-  [`options`], [settings of one puzzle, currently only the megaminx `cut` (@megaminx); other keys are errors],
+  [`options`], [settings of one puzzle, currently only the megaminx `cut` (@megaminx); others are errors],
 )
 
-`case(alg)` is `cube(scramble: alg, inverted: true)`: use it for every OLL, PLL
-or F2L diagram. `apply` adds moves to an existing state and returns a new one;
-states are plain values, never modified in place:
+`case(alg)` is `cube(scramble: alg, inverted: true)`: use it for every
+algorithm diagram (OLL, PLL, …). `apply` adds moves to a state and returns a
+new one; states are plain values, never modified in place:
 
 #example(
   "#let c = cube(scramble: \"R U F2 D' L B'\")\n#draw(c, view: \"full\")\n#draw(apply(c, \"y\"), view: \"full\")",
@@ -103,6 +103,21 @@ states are plain values, never modified in place:
   [`"skewb"`], [skewb], [`U D F B R L`],
   [`"pyraminx"`], [pyraminx], [`F L R D`],
   [`"megaminx"`], [megaminx], [`U F R BR BL L D DR DBR B DBL DL`],
+  [`"square1"`], [Square-1], [`U D` (the scheme still names four sides `F B R L` as cubes)],
+)
+
+Where the faces are, as the `net` view unfolds them (`labels: "faces"` writes
+the names). On the Square-1 the piece between the layers is the front of the
+equator (the middle layer); its `F B R L` sit as on a cube:
+
+#let blank = colors.pairs().map(((k, v)) => (k, white)).to-dict()
+#gallery(
+  columns: 3,
+  gutter: 6mm,
+  ..(("3x3", 4mm), ("skewb", 4mm), ("pyraminx", 5mm), ("megaminx", 3.5mm), ("square1", 5mm)).map(((ev, st)) => (
+    draw(cube(event: ev), view: "net", sticker: st, palette: blank, labels: "faces"),
+    raw(ev),
+  )),
 )
 
 == Notation
@@ -110,7 +125,7 @@ states are plain values, never modified in place:
 #link("https://www.worldcubeassociation.org/regulations/#article-12-notation")[WCA notation],
 plus whole-puzzle rotations where the WCA has none. Spaces optional where
 unambiguous (`RUR'U'`). `(R U R' U')3` repeats a group, `(..)'` inverts it.
-Commutators and conjugates nest freely: `[A, B]` is `A B A' B'`; `[A: B]`,
+Commutators and conjugates (except for Square-1) nest freely: `[A, B]` is `A B A' B'`; `[A: B]`,
 or `A: B` without brackets, is `A B A'`; so `F: [R, U]` and `[F: [R, U]]`
 both read `F R U R' U' F'`. Like `(..)`, a bracket can be repeated or
 inverted: `[R, U]3`, `[R, U]'`. Bad input fails with a `cubst:` message.
@@ -121,7 +136,7 @@ inverted: `[R, U]3`, `[R, U]'`. Bad input fails with a `cubst:` message.
   table.header[*N×N cubes*][],
   [`R L U D F B`], [face turns, clockwise seen from that face],
   [`'` `2` `2'`], [counter-clockwise, half turn],
-  [`Rw` `r` `3Rw`], [wide turns (lowercase = wide); leading number = layer count],
+  [`Rw` `r` `3Rw`], [wide turns; leading number = layer count],
   [`M E S`], [slices, following `L`, `D`, `F`],
   [`x y z`], [whole-cube rotations about the `R`, `U`, `F` axes],
   table.header[*skewb*][],
@@ -135,6 +150,9 @@ inverted: `[R, U]3`, `[R, U]'`. Bad input fails with a `cubst:` message.
   [`U F R L BL BR DR DL DBR DBL B D`], [face turns, one fifth; suffixes `'` `2` `2'`],
   [`R++ R--`], [all but L, two fifths, clockwise / counter-clockwise seen from the right],
   [`D++ D--`], [all but U, two fifths, seen from below],
+  table.header[*Square-1*][],
+  [`(x, y)`], [top layer `x`·30°, bottom layer `y`·30°, clockwisely],
+  [`/`], [right half 180°; a compile error when a corner blocks it],
 )
 
 == Color scheme <scheme>
@@ -151,21 +169,20 @@ turn a face into ink:
   [`U`], [*scheme* \ `cube(scheme: ..)`], [`"yellow"`], [*palette* \ `draw(palette: ..)`], [#box(width: 1.5em, height: 1.5em, fill: colors.yellow, stroke: 0.5pt)],
 ))
 
-The scheme is part of the state: changing it changes which stickers end up
-where. The palette (@palette) is part of the picture: changing it only changes
-the hues. Below, the same algorithm with the default scheme, with a scheme
-that has white on top (now white stickers count as "the top color"), and with
-the default scheme but another palette (same state, different yellow):
+The scheme is part of the state: it decides which stickers end up where. The
+palette (@palette) is part of the picture: it only changes the hues. Below,
+the same algorithm with the default scheme, with white on top (white is now
+"the top color"), and with another palette (same state, different yellow):
 
-#let white-up = (U: "white", D: "yellow", F: "green", B: "blue", R: "red", L: "orange")
+#let white-up = (..default-scheme, U: "white", D: "yellow", R: "red", L: "orange")
 #example(
-  "#let white-up = (\n  U: \"white\", D: \"yellow\", F: \"green\",\n  B: \"blue\", R: \"red\", L: \"orange\",\n)\n#draw(case(sune), view: \"oll\")\n#draw(case(sune, scheme: white-up), view: \"oll\")\n#draw(case(sune), view: \"oll\",\n  palette: (..colors, yellow: rgb(\"#f2c200\")))",
+  "#let white-up = (..default-scheme,\n  U: \"white\", D: \"yellow\", R: \"red\", L: \"orange\")\n#draw(case(sune), view: \"oll\")\n#draw(case(sune, scheme: white-up), view: \"oll\")\n#draw(case(sune), view: \"oll\",\n  palette: (..colors, yellow: rgb(\"#f2c200\")))",
   row(draw(case(sune), view: "oll"), draw(case(sune, scheme: white-up), view: "oll"), draw(case(sune), view: "oll", palette: (..colors, yellow: rgb("#f2c200")))),
 )
 
-Every name in a scheme must exist in the palette. The scheme is read when the
-state is built, and later only by the `oll` and `f2l` masks to find the top
-color; views show faces by position, not by color. The defaults:
+Every name in a scheme must exist in the palette. Views show faces by
+position, not by color; only the `oll`, `f2l` and `obl` masks read the scheme,
+to find the top (and bottom) color. The defaults:
 
 #table(
   columns: 2,
@@ -173,28 +190,32 @@ color; views show faces by position, not by color. The defaults:
   [N×N cubes, skewb], scheme-of("3x3"),
   [pyraminx], scheme-of("pyraminx"),
   [megaminx], scheme-of("megaminx"),
+  [Square-1], scheme-of("square1"),
 )
-
-`default-scheme` is the cube scheme, exported for spreading: `(..default-scheme, U: "white", D: "yellow")`.
 
 == Reading a state <reading>
 
 ```typ
 face(c, "U")             // stickers of a face: rows on a cube, else a flat array
 sticker(c, "U", 0, 2)    // one color name, or none when hidden
-is-solved(c)             // every face one color?
+is-solved(c)             // whether the cube is solved
 ```
 
-A sticker *position* is its index on the face, counted as drawn by the `face`
-view (`labels: true` writes them on the picture). On N×N cubes it may also be
+A *position* is a sticker's index on its face, as the `face` view draws it;
+`labels: true` writes the indices on the picture. N×N cubes also take
 `(row, col)` from the top left. Side faces are drawn with `U` at the top; `U`
-is seen from above with `B` at the top, `D` from below with `F` at the top (on
-the pyraminx, `B` at the top; on the megaminx, `F`).
+from above with `B` at the top; `D` from below with `F` at the top. On the
+pyraminx, `D` has the `B` vertex at the top. Megaminx faces always have a
+vertex at the top, so its side faces have `U` at the upper right. On the
+Square-1, `U` and `D` hold one sticker per piece,
+clockwise from the slice at the back, so their count changes with the state;
+the sides of the pieces and the equator are drawn but not indexed.
 
-#let blank = colors.pairs().map(((k, v)) => (k, white)).to-dict()
 #gallery(
-  ..(("3x3", "U"), ("skewb", "U"), ("pyraminx", "F"), ("megaminx", "F")).map(((ev, f)) => (
-    draw(cube(event: ev), view: "face", face: f, sticker: 7mm, palette: blank, labels: true),
+  gutter: 6mm,
+  ..(("3x3", "U"), ("skewb", "U"), ("pyraminx", "F"), ("megaminx", "F"), ("square1", "U")).map(((ev, f)) => (
+    // the Square-1 takes no face: (its face view is always U)
+    draw(cube(event: ev), view: "face", ..if ev == "square1" { (:) } else { (face: f) }, sticker: 6mm, palette: blank, labels: true),
     raw(ev + ", face " + f),
   )),
 )
@@ -202,54 +223,58 @@ the pyraminx, `B` at the top; on the megaminx, `F`).
 = Drawing a state <draw>
 
 ```typ
-draw(c, view: "full", mask: auto,
+draw(c, view: auto, mask: auto,
   sticker: 6mm, gap: 0pt, stroke: 0.5pt + black, radius: 0pt, body: none,
   palette: colors, hidden: auto,
-  face: auto, sides: auto, side: 0.35, labels: false,
+  face: auto, top: auto, tip: auto,
+  sides: auto, side-length: 0.35, labels: false,
   arrows: (), arrow-color: black, arrow-thickness: 1.6pt, arrow-head: 0.3,
-  tip: "U", spacing: auto)
+  spacing: auto, options: (:))
 ```
 
-`view` picks the kind of picture and which stickers are hidden; `mask`
-overrides the latter; the rest is appearance and means the same in every view.
-Options a view does not use are ignored, so one set of options serves every
-view.
+`view` picks the kind of picture and which stickers are hidden; `auto` is
+`full`, or `layers` on the Square-1. `mask` overrides the hiding. The rest is
+appearance and means the same in every view; a view ignores what it does not
+use, so one set of parameters serves all views.
 
-== Views
+== Views <views>
 
 A view is a kind of picture plus a default *mask* (which stickers are greyed
-out). `face`, `full` and `net` are the generic views; the others fix some
-arguments for a common diagram, so `view: "oll"` already hides everything but
-the top color. A view a puzzle does not support is an error listing the
-available ones.
+out). `face`, `net`, `full` and `layers` are the generic views; the others fix
+some arguments for a common diagram, so `view: "oll"` already hides everything
+but the top color. Asking a puzzle for a view it lacks is an error that lists
+the available ones.
 
 #table(
   columns: 4,
   stroke: none,
   table.header[*view*][*picture*][*hidden by default*][*puzzles*],
   [`"face"`], [one face straight on, chosen with `face:`], [nothing], [all],
-  [`"pll"`], [`face` with `face: "U", sides: true`], [nothing], [N×N cubes],
-  [`"oll"`], [`pll` with a mask], [everything but the top color], [N×N cubes],
-  [`"full"`], [3D], [nothing], [N×N cubes, skewb, pyraminx],
-  [`"f2l"`], [`full` with a mask], [every piece carrying the top color], [N×N cubes],
-  [`"tip"`], [3D, looking down a vertex chosen with `tip:`], [nothing], [pyraminx],
   [`"net"`], [unfolded net], [nothing], [all],
+  [`"full"`], [3D], [nothing], [N×N cubes, skewb, pyraminx, megaminx],
+  [`"f2l"`], [`full` with a mask], [every piece carrying the top color], [N×N cubes],
+  [`"oll"`], [`ll` with a mask], [everything but the top color], [N×N cubes],
+  [`"ll"`], [`face` with `face: "U", sides: true`], [nothing], [N×N cubes],
+  [`"tip"`], [3D, looking down the vertex chosen with `tip:`], [nothing], [pyraminx],
+  [`"layers"`], [both layers straight on], [nothing], [Square-1],
+  [`"obl"`], [`layers` with a mask, caps only], [everything but the `U` and `D` colors], [Square-1],
+  [`"cs"`], [`layers` with a mask, caps only], [everything (shape only)], [Square-1],
 )
 
 #gallery(
   columns: 3,
   (draw(case(sune), view: "oll", sticker: 5mm), [`"oll"`]),
-  (draw(case(tperm), view: "pll", sticker: 5mm), [`"pll"`]),
+  (draw(case(tperm), view: "ll", sticker: 5mm), [`"ll"`]),
   (draw(scrambled, view: "face", face: "F", sticker: 5mm), [`"face"`, `face: "F"`]),
   (draw(case("U R U' R'"), view: "f2l", sticker: 5mm), [`"f2l"`]),
   (draw(scrambled, view: "full", sticker: 5mm), [`"full"`]),
   (draw(cube(scramble: "M2 E2 S2"), view: "net", sticker: 4mm), [`"net"`]),
 )
 
-*Straight on.* One face head-on, oriented as in @reading. With
-`sides: true` every neighbouring sticker that touches the face is drawn as a
-strip outside the shared edge, so `U` with sides is the whole last layer seen
-from above. `sides: auto` is off for `face` and on for `pll` and `oll`.
+*Straight on.* One face head-on, oriented as in @reading. `sides: true` adds
+every neighbouring sticker that touches the face as a strip outside the shared
+edge, so `U` with sides is the whole last layer seen from above. `sides: auto`
+is off for `face`, on for `ll` and `oll`.
 
 #gallery(
   gutter: 4mm,
@@ -259,29 +284,44 @@ from above. `sides: auto` is off for `face` and on for `pll` and `oll`.
   )),
 )
 
-*3D.* An orthographic view from a camera fixed by the puzzle: N×N cubes and the
-skewb from the top-front-right corner (`U`, `F`, `R`); the pyraminx `full` from
-the front right and slightly below (`F`, `R`, `D`), its `tip` view straight
-down a vertex, the usual last-layer picture. To see other faces, rotate the
-state: `draw(apply(c, "y2"), view: "full")`. The megaminx has no 3D view.
+*3D.* An orthographic view with `face` in front and `top` on top, `F` and `U`
+by default. The camera keeps its place relative to these two, so they must
+sit like `F` and `U`: adjacent faces, or on the pyraminx a face and one of
+its vertices (`top: auto` picks the first that fits `face`). N×N cubes and
+the skewb: from the corner between `face`, `top` and the face to their right.
+Pyraminx: from in front of `face`, slightly below, the `top` vertex up; `tip`
+straight down the vertex named by `tip:`, the usual last-layer picture.
+Megaminx: straight down `face` (@megaminx).
 
-*Net.* Every face unfolded: a cross for N×N cubes and the skewb, a large triangle
-for the pyraminx, two flowers of six faces (`U` half, `D` half) for the
-megaminx. The only view that shows every sticker.
+#gallery(
+  gutter: 6mm,
+  (draw(scrambled, view: "full", sticker: 4.5mm), [default: `F`, `U`]),
+  (draw(scrambled, view: "full", face: "R", top: "U", sticker: 4.5mm), [`face: "R"`]),
+  (draw(scrambled, view: "full", face: "D", top: "F", sticker: 4.5mm), [`face: "D", top: "F"`]),
+  (draw(cube(event: "pyraminx", scramble: "U L R' B u l'"), view: "full", face: "D", sticker: 4.5mm), [pyraminx `face: "D"`]),
+)
+
+*Net.* Every face unfolded, as pictured in @build. The only view that shows
+every sticker.
+
+*Layers.* The Square-1's two layers straight on: `U` from above, `D` from
+below, each with the sides of its pieces around it, the slice on the right
+marked by a grey line; side by side, or top to bottom with
+`options: (direction: "vertical")`. The equator only appears in `net`.
 
 == Mask <mask>
 
-Leave `mask:` out to get the view's default. `mask: none` shows every sticker;
-`mask: f` replaces the default with your own function from a state to a state.
-Hidden stickers are drawn in the `hidden` color.
+Leave `mask:` out for the view's default. `mask: none` shows every sticker;
+`mask: f` uses your own function from a state to a state. Hidden stickers are
+drawn in the `hidden` color.
 
 #example(
   "#draw(case(\"U R U' R'\"), view: \"f2l\", mask: none)",
   draw(case("U R U' R'"), view: "f2l", mask: none),
 )
 
-These functions hide stickers and return the new state. They only ever hide,
-so they can be combined in any order, and work on every puzzle:
+These functions return a state with some stickers hidden. They only ever
+hide, so they combine in any order, and work on every puzzle:
 
 #table(
   columns: 2,
@@ -292,7 +332,7 @@ so they can be combined in any order, and work on every puzzle:
   [`mask(c, info => ..)`], [keep stickers for which the function is true; `info` has `face`, `index`, `color`, `piece`, plus `row`, `col` on N×N cubes],
 )
 
-Pass one as `mask:` (wrapped, so the state is filled in by `draw`) or apply it
+Pass one as `mask:` (as a function, so `draw` fills in the state) or apply it
 to the state first; the result is the same:
 
 #example(
@@ -300,41 +340,56 @@ to the state first; the result is the same:
   row(draw(case("R U R' U'"), view: "full", mask: c => keep-colors(c, ("yellow", "green"))), draw(keep-colors(case("R U R' U'"), ("yellow", "green")), view: "full")),
 )
 
-== Appearance options
+== Appearance parameters <options>
 
-Lengths must be absolute (`mm`, `pt`, `cm`). Sizes are in *units*: one unit is
-the edge of a cube sticker; a skewb face and a pyraminx edge are 3 units, a
-megaminx face about 3 units wide.
+Lengths must be absolute (`mm`, `pt`, `cm`). Sizes are in *units*: one unit
+is the edge of a cube sticker, or of the megaminx centre pentagon (at the
+default `cut`); a skewb face and a pyraminx edge are 3 units.
 
 #table(
   columns: 4,
   stroke: none,
-  table.header[*option*][*default*][*meaning*][*used by*],
+  table.header[*parameter*][*default*][*meaning*][*used by*],
   [`sticker`], [`6mm`], [length of one unit], [all],
   [`gap`], [`0pt`], [space between stickers; `body` shows through it], [all],
   [`stroke`], [`0.5pt + black`], [sticker outline: one Typst stroke (thickness `+` color), a thickness, a color, a dictionary, or `none`], [all],
-  [`radius`], [`0pt`], [corner radius of square stickers], [face, net],
+  [`radius`], [`0pt`], [corner radius of square stickers], [all but 3D],
   [`body`], [`none`], [color behind the stickers, seen through gaps and the margin around a face], [all],
   [`palette`], [`colors`], [color name → color (@palette)], [all],
   [`hidden`], [`auto`], [color of masked stickers; `auto` = the palette's `hidden` entry], [all],
-  [`face`], [`auto`], [face shown by the `face` view; `auto` = `U` (`F` on the pyraminx)], [face],
-  [`sides`], [`auto`], [draw the neighbours' stickers as strips; `auto` = off for `face`, on for `pll`, `oll`], [face, pll, oll],
-  [`side`], [`0.35`], [strip thickness in units], [face, pll, oll],
-  [`labels`], [`false`], [write each sticker's index on it], [face, pll, oll],
-  [`arrows`], [`()`], [arrows between positions (@arrows)], [face, pll, oll],
-  [`arrow-color`], [`black`], [default arrow color], [face, pll, oll],
-  [`arrow-thickness`], [`1.6pt`], [arrow line thickness], [face, pll, oll],
-  [`arrow-head`], [`0.3`], [arrow head length in units], [face, pll, oll],
-  [`tip`], [`"U"`], [vertex the `tip` view looks down], [tip],
-  [`spacing`], [`auto`], [distance between faces; `auto` = a quarter unit], [net],
+  [`face`], [`auto`], [`face` view: the face shown, `auto` = `U` (`F` on the pyraminx); `full`: the face in front, `auto` = `F`; not on the Square-1], [face, full],
+  [`top`], [`auto`], [`full`: the face on top (pyraminx: the vertex); `auto` = `U`, or the first that fits `face`], [full],
+  [`tip`], [`auto`], [vertex the pyraminx `tip` view looks down: `U`, `L`, `R` or `B`; `auto` = `U`], [tip],
+  [`sides`], [`auto`], [draw the neighbours' stickers as strips; `auto` = off for `face`, `obl`, `cs`, on for `ll`, `oll`, `layers`], [face, ll, oll, layers, obl, cs],
+  [`side-length`], [`0.35`], [strip thickness in units], [face, ll, oll, layers, obl, cs, net],
+  [`labels`], [`false`], [`true` writes each sticker's index on it; `"faces"` writes the face names instead], [face, ll, oll, layers, obl, cs, net],
+  [`arrows`], [`()`], [arrows between positions (@arrows)], [face, ll, oll],
+  [`arrow-color`], [`black`], [default arrow color], [face, ll, oll],
+  [`arrow-thickness`], [`1.6pt`], [default arrow line thickness], [face, ll, oll],
+  [`arrow-head`], [`0.3`], [default arrow head length in units], [face, ll, oll],
+  [`spacing`], [`auto`], [distance between faces; `auto` = a quarter unit (half a unit between layers)], [net, layers, obl, cs],
+  [`options`], [`(:)`], [settings of one puzzle, listed below; other keys are errors], [see below],
+)
+
+Like `cube(options:)`, `draw(options:)` holds the settings that exist for one
+puzzle only:
+
+#table(
+  columns: 4,
+  stroke: none,
+  table.header[*puzzle*][*option*][*default*][*meaning*],
+  [Square-1], [`slices`], [`auto`], [mark the slice with a grey line; `auto` = on except for `face`],
+  [Square-1], [`direction`], [`"horizontal"`], [layers side by side, or `"vertical"` for top to bottom],
+  [Square-1], [`turn`], [`false`], [turn each layer so that its slice is vertical, as `net` always does],
 )
 
 === Palette <palette>
 
-The palette maps each color *name* to a color (the second lookup in @scheme).
-It never changes the state, so one state can be drawn with several palettes.
-The default is `colors`: six cube colors, five more for the megaminx, and
-`hidden`, the shade of masked stickers (`grey` is an ordinary sticker color):
+The palette maps color *names* to colors (the second lookup in @scheme). It
+belongs to the picture, not the state, so one state can be drawn with several
+palettes. The default `colors` has the six cube colors, five more for the
+megaminx, `black`, and `hidden` for masked stickers (`grey` is an ordinary
+color):
 
 #block(breakable: false, align(center, grid(
   columns: (1fr,) * 7,
@@ -346,17 +401,16 @@ The default is `colors`: six cube colors, five more for the megaminx, and
 Spread `colors` to change some entries, for example for print:
 
 #example(
-  "#let print = (..colors,\n  red: rgb(\"#d55e00\"), orange: rgb(\"#f0e442\"),\n  yellow: rgb(\"#ffffff\"), white: rgb(\"#999999\"))\n#draw(case(sune), view: \"pll\", palette: print)",
-  draw(case(sune), view: "pll", palette: (..colors, red: rgb("#d55e00"), orange: rgb("#f0e442"), yellow: rgb("#ffffff"), white: rgb("#999999"))),
+  "#let print = (..colors,\n  red: rgb(\"#d55e00\"), orange: rgb(\"#f0e442\"),\n  yellow: rgb(\"#ffffff\"), white: rgb(\"#999999\"))\n#draw(case(sune), view: \"ll\", palette: print)",
+  draw(case(sune), view: "ll", palette: (..colors, red: rgb("#d55e00"), orange: rgb("#f0e442"), yellow: rgb("#ffffff"), white: rgb("#999999"))),
 )
 
 === Outlines and gaps <style>
 
-Every sticker is a filled polygon. `stroke` is its outline, one Typst stroke
-value: `0.5pt + black` is a single argument, as in `rect(stroke: ..)`. `gap`
-shrinks every sticker towards its centre by half the gap, leaving empty space
-that shows `body`. `body` is also seen in the margin between a face and its
-side strips. So stickers are separated by outlines, by gaps, or both:
+`stroke` is the sticker outline, one Typst stroke value (`0.5pt + black` is a
+single argument, as in `rect`). `gap` shrinks each sticker towards its centre
+by half the gap; the space shows `body`, which also fills the margin between a
+face and its strips. So stickers are separated by outlines, by gaps, or both:
 
 #gallery(
   gutter: 6mm,
@@ -367,21 +421,22 @@ side strips. So stickers are separated by outlines, by gaps, or both:
 )
 
 #example(
-  "#draw(case(sune), view: \"oll\",\n  stroke: none, gap: 1pt, body: black,\n  radius: 1pt, side: 0.5)",
-  draw(case(sune), view: "oll", stroke: none, gap: 1pt, body: black, radius: 1pt, side: 0.5),
+  "#draw(case(sune), view: \"oll\",\n  stroke: none, gap: 1pt, body: black,\n  radius: 1pt, side-length: 0.5)",
+  draw(case(sune), view: "oll", stroke: none, gap: 1pt, body: black, radius: 1pt, side-length: 0.5),
 )
 
 === Arrows <arrows>
 
-Arrows join sticker positions (@reading) on the shown face. Each is a pair
-`(from, to)` or a dictionary with `from`, `to`, and optionally `double: true`
-and `color`:
+Arrows join positions (@reading) on the shown face of any puzzle. Each is a
+pair `(from, to)` or a dictionary with `from`, `to` and optionally
+`double: true`, `color`, `thickness` and `head`, the last three overriding
+the `arrow-*` defaults for that arrow:
 
 #example(
-  "#draw(case(tperm), view: \"pll\", arrows: (\n  (from: (0, 2), to: (2, 2), double: true),\n  ((1, 0), (1, 2)),\n))",
-  draw(case(tperm), view: "pll", arrows: (
+  "#draw(case(tperm), view: \"ll\", arrows: (\n  (from: (0, 2), to: (2, 2), double: true),\n  (from: (1, 0), to: (1, 2),\n    color: red, thickness: 1pt, head: 0.2),\n))",
+  draw(case(tperm), view: "ll", arrows: (
     (from: (0, 2), to: (2, 2), double: true),
-    ((1, 0), (1, 2)),
+    (from: (1, 0), to: (1, 2), color: red, thickness: 1pt, head: 0.2),
   )),
 )
 
@@ -410,21 +465,97 @@ and `color`:
 == Megaminx <megaminx>
 
 #example-wide(
-  "#let c = cube(event: \"megaminx\",\n  scramble: \"R++ D-- R++ D++ U F' BL2\")\n#draw(c, view: \"face\", sides: true)\n#draw(case(\"R U R' U'\", event: \"megaminx\"),\n  view: \"face\", sides: true)\n#draw(c, view: \"net\", sticker: 3.5mm)",
+  "#let c = cube(event: \"megaminx\",\n  scramble: \"R++ D-- R++ D++ U F' BL2\")\n#draw(c, view: \"face\", sides: true)\n#draw(case(\"R U R' U'\", event: \"megaminx\"),\n  view: \"face\", sides: true)\n#draw(c, view: \"full\", sticker: 4mm)\n#draw(c, view: \"full\", face: \"U\", sticker: 4mm)\n#draw(c, view: \"net\", sticker: 3mm)",
   {
     let c = cube(event: "megaminx", scramble: "R++ D-- R++ D++ U F' BL2")
-    row(draw(c, view: "face", sides: true), draw(case("R U R' U'", event: "megaminx"), view: "face", sides: true), draw(c, view: "net", sticker: 3.5mm))
+    row(
+      draw(c, view: "face", sides: true),
+      draw(case("R U R' U'", event: "megaminx"), view: "face", sides: true),
+      draw(c, view: "full", sticker: 4mm),
+      draw(c, view: "full", face: "U", sticker: 4mm),
+      draw(c, view: "net", sticker: 3mm),
+    )
   },
 )
 
-`cut` sets the centre pentagon: its inradius as a fraction of the face's,
-`0.5` by default, between `0.05` and `0.95`. It changes sticker shapes and
-layer depth, so it belongs to the state:
+`full` looks straight down `face` with `top` up and shows it with its five
+neighbours: `F` by default, or `face: "U"` for the top half (then `F` is on
+top).
+
+`cut` is the centre pentagon's inradius as a fraction of the face's: `0.4` by
+default, between `0.05` and `0.95`. Keep it above `0.31`, below which the
+edge stickers no longer reach the edge of the face. It changes the sticker
+shapes and the layer depth, so it is a `cube()` option, not a `draw()` one:
 
 #example-wide(
-  "#for cut in (0.3, 0.5, 0.7) {\n  draw(cube(event: \"megaminx\", options: (cut: cut)),\n    view: \"face\", sides: true, sticker: 5mm)\n}",
-  row(..(0.3, 0.5, 0.7).map(cut => draw(cube(event: "megaminx", options: (cut: cut)), view: "face", sides: true, sticker: 5mm))),
+  "#for cut in (0.33, 0.4, 0.6) {\n  draw(cube(event: \"megaminx\", options: (cut: cut)),\n    view: \"face\", sides: true, sticker: 5mm)\n}",
+  row(..(0.33, 0.4, 0.6).map(cut => draw(cube(event: "megaminx", options: (cut: cut)), view: "face", sides: true, sticker: 5mm))),
 )
+
+== Square-1 <sq1>
+
+Held the WCA way: yellow on top, white below, red in front, the slice through
+`F` and `B` with the smaller front part on the left. The shape follows the
+state.
+
+*Views* (@views). `layers`: `U` from above and `D` from below, each with the
+sides of its pieces, the slice on the right marked by a grey line. `net`: the layers turned
+so that the slice is vertical, with the front of the equator between them:
+two reds of different lengths when it is in place, a red and an orange of the
+same length when it is flipped. `obl` keeps only the `U` and `D` colors (the
+orientation diagram); `cs` hides every sticker (the cube-shape diagram); both
+show only the caps unless `sides: true`. `face:` and `top:` do not apply.
+
+#example-wide(
+  "#let c = cube(event: \"square1\",\n  scramble: \"(0,-1)/ (3,0)/ (4,0)/ (6,0)/ (3,0)/\")\n#draw(c, view: \"layers\")\n#draw(c, view: \"layers\", sticker: 4mm,\n  options: (direction: \"vertical\"))\n#draw(c, view: \"net\", sticker: 4mm)",
+  {
+    let c = cube(event: "square1", scramble: "(0,-1)/ (3,0)/ (4,0)/ (6,0)/ (3,0)/")
+    row(draw(c, view: "layers"), draw(c, view: "layers", options: (direction: "vertical"), sticker: 4mm), draw(c, view: "net", sticker: 4mm))
+  },
+)
+
+*Options* (@options). `direction: "vertical"` stacks the layers,
+`slices: false` removes the line, `turn: true` turns each layer so that the
+line is vertical:
+
+#example-wide(
+  "#let adj = \"/ (3,-3) / (3,0) / (-3,0) / (0,3) / (-3,0) /\"\n#let sk = cube(event: \"square1\", scramble: \"/ (3,0) / (1,2) /\")  // scallop / kite\n#draw(case(adj, event: \"square1\"), view: \"layers\")\n#draw(cube(event: \"square1\", scramble: \"(0,-1) / (-3,0) /\"),\n  view: \"obl\", options: (slices: false))\n#draw(sk, view: \"cs\", sticker: 4mm, options: (direction: \"vertical\"))\n#draw(sk, view: \"cs\", sticker: 4mm, options: (turn: true))",
+  {
+    let adj = "/ (3,-3) / (3,0) / (-3,0) / (0,3) / (-3,0) /"
+    let sk = cube(event: "square1", scramble: "/ (3,0) / (1,2) /")
+    row(
+      draw(case(adj, event: "square1"), view: "layers"),
+      draw(cube(event: "square1", scramble: "(0,-1) / (-3,0) /"), view: "obl", options: (slices: false)),
+      draw(sk, view: "cs", options: (direction: "vertical"), sticker: 4mm),
+      draw(sk, view: "cs", options: (turn: true), sticker: 4mm),
+    )
+  },
+)
+
+*Moves.* A `/` with a corner across the slice is a compile error naming the
+moves done so far. `is-solved` means cube shape with every piece in place, up
+to turning the layers.
+
+== Arrows on other puzzles
+
+#block(breakable: false)[
+Arrows (@arrows) take the positions of @reading. Below: an edge cycle on the
+pyraminx, the T perm on the megaminx, and the Square-1 algorithm above, which
+cycles three corner-edge blocks; corner cycles in red:
+
+#example-wide(
+  "#let corner(a, b) = (from: a, to: b, color: red)\n#draw(case(\"L' U L U R U R'\", event: \"pyraminx\"),\n  view: \"face\", sides: true, arrows: ((3, 1), (1, 6), (6, 3)))\n#draw(case(tperm, event: \"megaminx\"), view: \"face\", sides: true,\n  arrows: ((4, 2), (2, 5), (5, 4),\n    corner(8, 7), corner(7, 10), corner(10, 8)))\n#draw(case(adj, event: \"square1\"), view: \"face\", sides: true,\n  arrows: ((5, 1), (1, 7), (7, 5),\n    corner(4, 0), corner(0, 6), corner(6, 4)))",
+  {
+    let corner(a, b) = (from: a, to: b, color: red)
+    let adj = "/ (3,-3) / (3,0) / (-3,0) / (0,3) / (-3,0) /"
+    row(
+      draw(case("L' U L U R U R'", event: "pyraminx"), view: "face", sides: true, arrows: ((3, 1), (1, 6), (6, 3))),
+      draw(case(tperm, event: "megaminx"), view: "face", sides: true, arrows: ((4, 2), (2, 5), (5, 4), corner(8, 7), corner(7, 10), corner(10, 8))),
+      draw(case(adj, event: "square1"), view: "face", sides: true, arrows: ((5, 1), (1, 7), (7, 5), corner(4, 0), corner(0, 6), corner(6, 4))),
+    )
+  },
+)
+]
 
 = Recipes
 
@@ -449,6 +580,23 @@ layer depth, so it belongs to the state:
 #example-wide(
   "#let steps = (\"R\", \"U\", \"R'\", \"U'\")\n#let states = range(steps.len() + 1)\n  .map(k => cube(scramble: steps.slice(0, k).join(\" \")))\n#grid(columns: 5, gutter: 4mm,\n  ..states.map(c => draw(c, view: \"full\", sticker: 4mm)))",
   grid(columns: 5, gutter: 4mm, ..states.map(c => draw(c, view: "full", sticker: 4mm))),
+)
+
+== Cross
+
+Only the white edges and the centres. `hide-pieces` hides exactly the pieces
+carrying white, so a sticker it turned into `none` is on one; a `row` or `col`
+of 1 rules out corners. `x2` puts white on top, where `full` can see it.
+
+#let cross-state = {
+  let c = apply(cube(), "x2")
+  let rest = hide-pieces(c, containing: "white")
+  mask(c, info => (info.row == 1 and info.col == 1)
+    or (rest.faces.at(info.face).at(info.index) == none and (info.row == 1 or info.col == 1)))
+}
+#example(
+  "#let c = apply(cube(), \"x2\")\n#let rest = hide-pieces(c, containing: \"white\")\n#let cross = mask(c, info =>\n  (info.row == 1 and info.col == 1)      // every centre ..\n  or (rest.faces.at(info.face).at(info.index) == none\n    and (info.row == 1 or info.col == 1))) // .. white edges\n#draw(cross, view: \"full\")",
+  draw(cross-state, view: "full"),
 )
 
 == Other cube sizes
@@ -479,8 +627,8 @@ Every cube view works for any `"NxN"`. Wide moves take a layer count (`3Rw`);
   [`face(c, name)`, `sticker(c, name, ..pos)`, `is-solved(c)`], [read a state (@reading)],
   [`keep-colors`, `hide-faces`, `hide-pieces`, `mask`], [hide stickers (@mask)],
   [`draw(c, view:, mask:, ..)`], [draw a state (@draw)],
-  [`draw-face`, `draw-3d`, `draw-net`], [the renderers behind `draw`; `draw-3d` also takes a `camera: (dir:, up:)`],
+  [`draw-face`, `draw-3d`, `draw-net`, `draw-layers`], [the renderers behind `draw`; `draw-3d` also takes a `camera: (dir:, up:)`],
   [`views`], [the view table: kind, fixed arguments and default mask of each view],
   [`colors`, `default-scheme`], [the default palette and cube scheme],
-  [`puzzles`], [the puzzle definitions, keyed `cube`, `skewb`, `pyraminx`, `megaminx`],
+  [`puzzles`], [the puzzle definitions, keyed `cube`, `skewb`, `pyraminx`, `megaminx`, `square1`],
 ))

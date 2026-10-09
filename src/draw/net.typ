@@ -6,10 +6,11 @@
 #import "../geom.typ" as g
 #import "../state.typ": assert-puzzle
 #import "../puzzles/registry.typ" as registry
-#import "common.typ": default-palette, fill-of, abs-pt, shape
+#import "common.typ": default-palette, fill-of, abs-pt, shape, name-label
 
 /// Draw the net of a puzzle. `spacing` is the distance between faces (`auto`
-/// = a quarter unit).
+/// = a quarter unit). `labels: true` writes each sticker's index on it,
+/// `"faces"` the name of each face at its centre.
 #let draw-net(
   c,
   sticker: 6mm,
@@ -20,6 +21,7 @@
   palette: default-palette,
   hidden: auto,
   body: none,
+  labels: false,
 ) = {
   assert-puzzle(c, who: "draw-net")
   let model = registry.model(c)
@@ -37,6 +39,7 @@
       stickers: model.stickers.filter(st => st.face == name).map(st => (
         poly: st.poly.map(p => g.to-local(f.frame, p)),
         name: c.faces.at(name).at(st.index),
+        index: st.index,
       )),
     ))
   }
@@ -89,6 +92,7 @@
   let shapes = placed.keys().map(f => local.at(f).stickers.map(st => (
     poly: g.inset(st.poly.map(q => world(f, q)), gp),
     name: st.name,
+    index: st.index,
   ))).flatten()
   let (min, max) = g.bbox(outlines.map(o => o.poly).flatten().chunks(2))
   let to-pt(p) = ((p.at(0) - min.at(0)) * s, (p.at(1) - min.at(1)) * s)
@@ -98,5 +102,17 @@
       for o in outlines { shape(o.poly.map(to-pt), body, none, 0pt) }
     }
     for sh in shapes { shape(sh.poly.map(to-pt), fill-of(sh.name, palette, hidden), stroke, radius) }
+    // content centred on a point (in pt), in a box wide enough for "DBR"
+    let label(p, body) = place(
+      top + left,
+      dx: (p.at(0) - 1.5 * s) * 1pt,
+      dy: (p.at(1) - 0.5 * s) * 1pt,
+      box(width: 3 * s * 1pt, height: s * 1pt, align(std.center + horizon, body)),
+    )
+    if labels == "faces" {
+      for f in placed.keys() { label(to-pt(world(f, g.centroid2(local.at(f).verts))), name-label(f, s)) }
+    } else if labels == true {
+      for sh in shapes { label(to-pt(g.centroid2(sh.poly)), text(size: 0.38 * s * 1pt, str(sh.index))) }
+    }
   })
 }

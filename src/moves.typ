@@ -54,6 +54,16 @@
   assert-puzzle(c, who: "apply")
   let moves = parse-with(alg, c.puzzle, c.params)
   if moves.len() == 0 { return c }
+  for m in moves {
+    assert(
+      m.puzzle == c.puzzle,
+      message: "cubst: move " + m.base + " belongs to the " + m.puzzle + " notation, not to a " + c.event,
+    )
+  }
+  // a puzzle whose geometry changes with the state moves its own layout
+  let hook = registry.of(c).at("apply", default: none)
+  if hook != none { return hook(c, moves) }
+
   let model = registry.model(c)
   let stickers = model.stickers
   let cents = stickers.map(s => g.centroid(s.poly))
@@ -64,10 +74,6 @@
   let flat = stickers.map(s => c.faces.at(s.face).at(s.index))
   let perms = (:)
   for m in moves {
-    assert(
-      m.puzzle == c.puzzle,
-      message: "cubst: move " + m.base + " belongs to the " + m.puzzle + " notation, not to a " + c.event,
-    )
     let k = m.style + m.base + ":" + str(m.amount)
     if k not in perms {
       let angle = m.step * m.amount
