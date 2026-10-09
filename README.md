@@ -73,7 +73,7 @@ each puzzle and the notation in full.
 ## Development
 
 The source lives at [github.com/ANCuber/cubst](https://github.com/ANCuber/cubst).
-It needs [Typst](https://typst.app) ≥ 0.13.1, [just](https://github.com/casey/just)
+It needs [Typst](https://typst.app) ≥ 0.14.0, [just](https://github.com/casey/just)
 and [Tytanic](https://github.com/typst-community/tytanic):
 
 ```sh
@@ -83,7 +83,7 @@ just install       # install to the @local namespace for use in other documents
 ```
 
 How the package is built and how to add a puzzle is explained in the
-[developer guide](https://github.com/ANCuber/cubst/blob/main/docs/DEVELOPMENT.md).
+[developer guide](https://github.com/ANCuber/cubst/blob/v0.1.0/docs/DEVELOPMENT.md).
 
 ## License
 

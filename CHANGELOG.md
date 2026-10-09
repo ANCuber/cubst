@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Faces of puzzles other than cubes are flat arrays; `sticker(c, face, index)`.
 - `gap` shrinks stickers in place instead of adding space between them.
 - The strip thickness parameter is `side-length` (was `side`).
+- CeTZ 0.5.2, so the package needs Typst 0.14 or newer.
 
 [Unreleased]: https://github.com/ANCuber/cubst/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ANCuber/cubst/releases/tag/v0.1.0

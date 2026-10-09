@@ -14,8 +14,6 @@ jobs:
         # add any other Typst versions that your package should support
         # minimum is dictated by CeTZ (see typst.toml `compiler`)
         typst-version:
-          - typst: 0.13
-            tytanic: 0.2
           - typst: 0.14
             tytanic: 0.3
           # the reference images are rendered with this version (see docs/DEVELOPMENT.md);

@@ -360,7 +360,7 @@ and `assert`). `render/*` are image tests with a `ref/` directory. Keep
 them small, with `#set page(width: auto, height: auto)`. References are
 generated with the local Typst (0.15, the newest entry of the CI matrix).
 Older compilers rasterize slanted edges slightly differently, which showed up
-as a single deviating pixel on `render/square1` under Typst 0.13/0.14, so
+as a single deviating pixel on `render/square1` under Typst 0.13 and 0.14, so
 `just test` allows up to 10 deviating pixels per image (`--max-deviations`);
 a genuine change moves hundreds. Raise the number only with a diff image in
 hand.
@@ -419,7 +419,9 @@ and does not render GitHub alerts, emoji shortcodes or task lists.
    <date>` and add its link line (`[<version>]:
    https://github.com/ANCuber/cubst/releases/tag/v<version>`, with
    `[Unreleased]` pointing at `compare/v<version>...HEAD`); set the version
-   in `typst.toml` and in the import in `README.md`.
+   in `typst.toml` and, in `README.md`, in the import and in the permalink to
+   this guide (`blob/v<version>/...`; Universe's checker warns about links to
+   `main`, since they drift away from the published version).
 2. `just test` and `just doc`; read `docs/manual.pdf` and look at the thumbnails.
 3. `just install`, then compile a document outside the repo with
    `#import "@local/cubst:<version>": *`.

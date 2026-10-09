@@ -59,6 +59,10 @@ jobs:
             echo "CHANGELOG.md has no section for ${VERSION}" >&2
             exit 1
           fi
+          if grep -q "github.com/.*/blob/main/" README.md; then
+            echo "README.md links to the main branch; link to v${VERSION} instead" >&2
+            exit 1
+          fi
 
           echo "GIT_USER_NAME=$(git log -1 --pretty=format:'%an')" >> "${GITHUB_ENV}"
           echo "GIT_USER_EMAIL=$(git log -1 --pretty=format:'%ae')" >> "${GITHUB_ENV}"
