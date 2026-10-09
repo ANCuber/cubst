@@ -6,6 +6,9 @@
 #show raw.where(block: true): block.with(fill: luma(245), inset: 8pt, radius: 4pt, width: 100%)
 #show link: set text(fill: rgb("#1a5fb4"))
 
+// the version comes from the manifest, so a release changes it in one place
+#let version = toml("/typst.toml").package.version
+
 #let sune = "R U R' U R U2 R'"
 #let tperm = "R U R' U' R' F R2 U' R' U' R U R' F'"
 #let scrambled = cube(scramble: "R U F2 D' L B'")
@@ -39,18 +42,16 @@
 #align(center)[
   #text(2em, weight: "bold")[cubst]
   #v(0.5em)
-  Draw Rubik's Cubes in Typst
+  Draw twisty puzzles in Typst
   #v(0.5em)
-  Version 0.1.0
+  Version #version
 ]
 
 #outline()
 
 = Quick start
 
-```typ
-#import "@preview/cubst:0.1.0": *
-```
+#raw("#import \"@preview/cubst:" + version + "\": *", lang: "typ", block: true)
 
 `case()` builds the state an algorithm solves; `draw()` draws it:
 

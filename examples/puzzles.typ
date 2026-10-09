@@ -25,7 +25,7 @@
   align: center + bottom,
   [#draw(cube(event: "pyraminx"), view: "full") \ solved],
   [#draw(py, view: "full") \ `U L R' B u l'`],
-  [#draw(py, view: "tip", options: (tip: "U")) \ from the U tip],
+  [#draw(py, view: "tip", tip: "U") \ from the U tip],
   [#draw(py, view: "net", sticker: 4.5mm) \ net],
 )
 #grid(
@@ -35,7 +35,7 @@
   [#draw(cube(event: "pyraminx", scramble: "U"), view: "tip") \ after `U`, from the top],
   [#draw(py, view: "face", face: "F") \ face F],
   [#draw(py, view: "face", face: "D", sides: true) \ face D with sides],
-  [#draw(py, view: "tip", options: (tip: "B"), gap: 1pt, body: black, stroke: none) \ from the B tip, dark],
+  [#draw(py, view: "tip", tip: "B", gap: 1pt, body: black, stroke: none) \ from the B tip, dark],
 )
 
 == Megaminx

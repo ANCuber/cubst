@@ -3,7 +3,9 @@
 *.png
 !tests/**/ref/*.png
 !docs/**/*.png
-docs/manual.pdf
+# the manual is committed: the README links to it and it ships with the package
+!docs/manual.pdf
+out/
 
 # tytanic output
 tests/**/out/

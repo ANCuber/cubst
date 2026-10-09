@@ -1,14 +1,20 @@
-# files that should not be uploaded to Universe when releasing this package
-# (specific to scripts/package; patterns match from the repo root, `*` also matches `/`)
+# Files that stay in this repository and never go into the typst/packages PR
+# (read by scripts/package; patterns match from the repo root, `*` also matches `/`).
+#
+# What does go: typst.toml, src, LICENSE, README.md, and the files the README
+# links to (CHANGELOG.md, docs/manual.pdf and the thumbnails in docs/). Those
+# linked files are listed under `exclude` in typst.toml so Universe shows them
+# without bundling them into the archive users download.
 
 .github
 .gitignore
+.claude
+*.DS_Store
 examples
 scripts
 tests
 Justfile
-thumbnail-dark.svg
-thumbnail-light.svg
-# PDF manuals should be included so that they can be linked, but not their sources
+# manual sources, the developer guide and the thumbnail source
 docs/*
-!docs/*.pdf
+!docs/manual.pdf
+!docs/thumbnail-*.svg

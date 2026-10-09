@@ -50,14 +50,40 @@ jobs:
             echo "package version ${VERSION} does not match release tag ${GITHUB_REF_NAME}" >&2
             exit 1
           fi
+          # the manual reads the version from typst.toml; these two are written by hand
+          if ! grep -q "@preview/${PKG_PREFIX}:${VERSION}\"" README.md; then
+            echo "README.md does not import @preview/${PKG_PREFIX}:${VERSION}" >&2
+            exit 1
+          fi
+          if ! grep -q "^## \[${VERSION}\]" CHANGELOG.md; then
+            echo "CHANGELOG.md has no section for ${VERSION}" >&2
+            exit 1
+          fi
 
           echo "GIT_USER_NAME=$(git log -1 --pretty=format:'%an')" >> "${GITHUB_ENV}"
           echo "GIT_USER_EMAIL=$(git log -1 --pretty=format:'%ae')" >> "${GITHUB_ENV}"
+
+      - name: Setup typst
+        uses: typst-community/setup-typst@v4
+        with:
+          typst-version: 0.15
+
+      - name: Setup tytanic
+        uses: typst-community/setup-tytanic@v1
+        with:
+          tytanic-version: 0.4
+
+      - name: Run test suite
+        run: just test
+
+      - name: Build the manual and thumbnails
+        run: just doc
 
       - name: Create archives
         run: |
           just package out
           mkdir dist
+          cp docs/manual.pdf dist/manual.pdf
           cd out
           zip -r "../dist/${PKG_NAME}-${PKG_VERSION}.zip" "${PKG_NAME}"
           # TODO create tar.gz with same contents as packages.typst.org

@@ -1,4 +1,4 @@
-# for a description of available keys, see https://github.com/typst/packages/?tab=readme-ov-file#package-format
+# for a description of available keys, see https://github.com/typst/packages/blob/main/docs/manifest.md
 
 [package]
 name = "cubst"
@@ -6,23 +6,17 @@ version = "0.1.0"
 entrypoint = "src/lib.typ"
 authors = ["Lai, Hong-An (Anson Lai) <@ANCuber>"]
 license = "MIT"
-description = "Draw Rubik's cubes in Typst: 2D, net and 3D views generated from cube states and move algorithms"
-homepage = "https://github.com/ANCuber/cubst"
+description = "Draw N*N Rubik's cubes, skewb, pyraminx, megaminx and Square-1 diagrams"
 repository = "https://github.com/ANCuber/cubst"
-keywords = ["rubik", "rubik's cube", "cube", "puzzle", "speedcubing", "cetz"]
+keywords = ["rubik's cube", "twisty puzzle", "speedcubing", "skewb", "pyraminx", "megaminx", "square-1", "cetz"]
 categories = ["visualization"]
 disciplines = []
 # CeTZ 0.4.2 requires this compiler version; keep in sync with src/deps.typ
 compiler = "0.13.1"
+# Committed to typst/packages so the README can link to them, but not bundled
+# (docs/ holds only manual.pdf and the thumbnails there; see .typstignore for
+# what never reaches typst/packages at all).
 exclude = [
-  ".github",
-  "docs",
-  "examples",
-  "scripts",
-  "tests",
-  ".typstignore",
-  ".gitignore",
-  "Justfile",
-  "thumbnail-dark.svg",
-  "thumbnail-light.svg",
+  "/docs",
+  "/CHANGELOG.md",
 ]

@@ -358,8 +358,12 @@ tt update render/oll      # regenerate one
 `moves/*`, `state/*`, `puzzles/*`, `draw/*`, `colors` are unit tests (compile
 and `assert`). `render/*` are image tests with a `ref/` directory. Keep
 them small, with `#set page(width: auto, height: auto)`. References are
-generated with the local Typst; align the CI matrix with it or regenerate in
-CI.
+generated with the local Typst (0.15, the newest entry of the CI matrix).
+Older compilers rasterize slanted edges slightly differently, which showed up
+as a single deviating pixel on `render/square1` under Typst 0.13/0.14, so
+`just test` allows up to 10 deviating pixels per image (`--max-deviations`);
+a genuine change moves hundreds. Raise the number only with a diff image in
+hand.
 
 ## 9. Conventions
 
@@ -371,15 +375,69 @@ CI.
   are still being filled as parameters (see `net.typ`).
 * Document every public function with a `///` comment above it.
 
-## 10. Release checklist
+## 10. Packaging and release
 
-1. Update `CHANGELOG.md` and the version in `typst.toml`, `README.md`,
-   `docs/manual.typ`.
-2. `just test` and `just doc`; check `docs/manual.pdf` and the thumbnails.
+### What ships where
+
+Typst Universe sorts a package's files into three groups
+([docs/tips.md](https://github.com/typst/packages/blob/main/docs/tips.md) in
+`typst/packages`), and this repository encodes the split in two files:
+
+| group | files | `.typstignore` (goes into the PR?) | `typst.toml` `exclude` (in the archive?) |
+| --- | --- | --- | --- |
+| required | `typst.toml`, `src/`, `LICENSE`, `README.md` | yes | yes |
+| linked from the README | `CHANGELOG.md`, `docs/manual.pdf`, `docs/thumbnail-*.svg` | yes | no: Universe serves them for the README's links and images, users do not download them |
+| development only | `tests/`, `examples/`, `scripts/`, `Justfile`, `.github/`, `docs/*.typ`, `docs/DEVELOPMENT.md`, dotfiles | no | – |
+
+`scripts/package` (behind `just package`, `just install`) copies everything
+`.typstignore` lets through, so `just package out` produces exactly the tree
+the PR must contain: `out/cubst/<version>/`. Keep the two lists in step: a
+file the README links to must pass `.typstignore` *and* appear in `exclude`.
+
+`docs/manual.pdf` and the thumbnails are committed (the manual is the only
+PDF `.gitignore` allows) because the README on GitHub links to them as well;
+rebuild them with `just doc` before every commit that changes the manual or
+the thumbnail.
+
+### Versions
+
+The version lives in `typst.toml`. The manual reads it from there
+(`toml("/typst.toml").package.version`), so only two places are written by
+hand: the `@preview/cubst:<version>` import in `README.md` and the
+`## [<version>]` heading in `CHANGELOG.md`. The release workflow refuses a
+tag unless all three agree with the tag name, and runs the test suite before
+packaging. Published versions are immutable on Universe, so a mistake in a
+release is fixed by a new patch version, never by re-tagging.
+
+The README is the package's page on Universe. Universe drops its top-level
+heading, resolves relative links and images against the package directory
+and does not render GitHub alerts, emoji shortcodes or task lists.
+
+### Checklist
+
+1. Move the `Unreleased` section of `CHANGELOG.md` under `## [<version>] -
+   <date>` and add its link line (`[<version>]:
+   https://github.com/ANCuber/cubst/releases/tag/v<version>`, with
+   `[Unreleased]` pointing at `compare/v<version>...HEAD`); set the version
+   in `typst.toml` and in the import in `README.md`.
+2. `just test` and `just doc`; read `docs/manual.pdf` and look at the thumbnails.
 3. `just install`, then compile a document outside the repo with
    `#import "@local/cubst:<version>": *`.
-4. Tag `v<version>`. The release workflow needs `REGISTRY_FORK` to be your fork
-   of `typst/packages` and a `REGISTRY_TOKEN` secret with push access to it.
+4. `just package out` and check `out/cubst/<version>` holds only the first
+   two groups above. Delete `out/` afterwards (it is git-ignored).
+5. Commit, then tag `v<version>` and push the tag. The release workflow
+   builds the manual, attaches `cubst-<version>.zip` and `manual.pdf` to a
+   GitHub release, and pushes a branch `cubst-<version>` to the fork named by
+   `REGISTRY_FORK` in `.github/workflows/release.yml`. It needs that fork of
+   `typst/packages` to exist and a repository secret `REGISTRY_TOKEN` (a
+   fine-grained token with contents read and write on the fork).
+6. Open the pull request from that branch to `typst/packages`, titled
+   `cubst:<version>`, and fill in its checklist. Later versions must come from
+   the same GitHub account.
+
+Without the workflow: `just package out`, copy `out/cubst/<version>` to
+`packages/preview/cubst/<version>` in a fork of `typst/packages`, commit and
+open the same pull request.
 
 ## 11. Known gaps and ideas
 

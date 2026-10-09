@@ -7,9 +7,12 @@ or an unfolded net. It supports N×N cubes, the skewb, the pyraminx, the
 megaminx and the Square-1, all driven by one geometric engine.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./thumbnail-dark.svg">
-  <img src="./thumbnail-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/thumbnail-dark.svg">
+  <img src="docs/thumbnail-light.svg" alt="OLL, PLL, 3D cube, pyraminx and megaminx diagrams drawn by cubst">
 </picture>
+
+The [manual](docs/manual.pdf) covers every view, option and puzzle with
+pictures; the [changelog](CHANGELOG.md) lists what changed in each version.
 
 ## Getting started
 
@@ -63,33 +66,24 @@ States are plain values, so you can build them once and draw them many ways:
 | megaminx | `face`, `full`, `net` | face turns, `R++ R-- D++ D--` |
 | Square-1 | `face`, `layers`, `obl`, `cs`, `net` | `(x,y)` and `/`; an impossible slice is a compile error |
 
-The default scheme is yellow on top, green in front. See `docs/manual.pdf`
-for all options and `docs/DEVELOPMENT.md` for how it is built.
+The default scheme is yellow on top, green in front. The
+[manual](docs/manual.pdf) documents every parameter, the sticker numbering of
+each puzzle and the notation in full.
 
 ## Development
 
-Requirements: [Typst](https://typst.app) ≥ 0.13.1, [just](https://github.com/casey/just),
-and [Tytanic](https://github.com/typst-community/tytanic) (`brew install tytanic`).
+The source lives at [github.com/ANCuber/cubst](https://github.com/ANCuber/cubst).
+It needs [Typst](https://typst.app) ≥ 0.13.1, [just](https://github.com/casey/just)
+and [Tytanic](https://github.com/typst-community/tytanic):
 
 ```sh
 just test          # run the test suite
-just update        # accept new reference images
-just doc           # build docs/manual.pdf and the thumbnails
+just doc           # build the manual and the thumbnails in docs/
 just install       # install to the @local namespace for use in other documents
-just uninstall
 ```
 
-Layout:
-
-- `src/lib.typ` public API (re-exports only)
-- `src/puzzles/` one file per puzzle: 3D model, notation, cameras, net
-- `src/state.typ`, `src/moves.typ` generic state, masks and move engine
-- `src/cube.typ` the `cube`/`case` constructors
-- `src/draw/` renderers (`2d.typ`, `net.typ`, `3d.typ`) and the `draw` dispatcher (`views.typ`)
-- `src/deps.typ` the single place third-party packages (CeTZ) are imported
-- `tests/` Tytanic unit and image-regression tests
-- `examples/` scratch documents, not published
-- `docs/` manual, developer guide and thumbnail sources
+How the package is built and how to add a puzzle is explained in the
+[developer guide](https://github.com/ANCuber/cubst/blob/main/docs/DEVELOPMENT.md).
 
 ## License
 

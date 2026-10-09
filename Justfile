@@ -9,12 +9,13 @@ default:
 # generate manual
 doc:
   typst compile docs/manual.typ docs/manual.pdf
-  typst compile docs/thumbnail.typ thumbnail-light.svg
-  typst compile --input theme=dark docs/thumbnail.typ thumbnail-dark.svg
+  typst compile docs/thumbnail.typ docs/thumbnail-light.svg
+  typst compile --input theme=dark docs/thumbnail.typ docs/thumbnail-dark.svg
 
-# run test suite
+# run test suite; a few pixels may differ between Typst versions' rasterizers
+# (anti-aliasing on the Square-1's slanted edges), a real change moves hundreds
 test *args:
-  tt run --no-fail-fast {{ args }}
+  tt run --no-fail-fast --max-deviations 10 {{ args }}
 
 # update test cases
 update *args:
