@@ -55,7 +55,7 @@
 
 `case()` builds the state an algorithm solves; `draw()` draws it:
 
-#example("#draw(case(\"R U R' U R U2 R'\"), view: \"oll\")", draw(case(sune), view: "oll"))
+#example("#let sune = \"R U R' U R U2 R'\"\n#draw(case(sune), view: \"oll\")", draw(case(sune), view: "oll"))
 
 `cube()` builds a scrambled puzzle; `event:` picks the puzzle:
 
